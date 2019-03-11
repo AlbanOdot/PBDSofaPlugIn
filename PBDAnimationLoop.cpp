@@ -1,4 +1,4 @@
-#include <sofa/simulation/PBDAnimationLoop.h>
+#include "PBDAnimationLoop.hpp"
 #include <sofa/core/ObjectFactory.h>
 
 #include <sofa/simulation/AnimateVisitor.h>
