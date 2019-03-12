@@ -14,8 +14,8 @@
 #include <sofa/core/behavior/RotationMatrix.h>
 #include <math.h>
 
-typedef sofa::component::linearsolver::FullMatrix<double> Matrix;
-typedef sofa::component::linearsolver::FullVector<double> Vector;
+typedef sofa::defaulttype::Mat3x3 Matrix;
+typedef sofa::defaulttype::Vec3f Vector;
 
 
 namespace sofa{
@@ -29,35 +29,27 @@ namespace core{
  */
 class GaussSeidelSolver : public objectmodel::BaseObject
 {
-
-public:
-    SOFA_CLASS(GaussSeidelSolver, sofa::core::objectmodel::BaseObject);
-protected:
-    GaussSeidelSolver();
-    virtual ~GaussSeidelSolver();
-private:
     GaussSeidelSolver(const GaussSeidelSolver& n) ;
     GaussSeidelSolver& operator=(const GaussSeidelSolver& n) ;
 
 public:
-    Data<unsigned> m_maxIter; ///< maximum number of iterations of the Conjugate Gradient solution
-    ///Ca vavite dégager je pense
-    Data<SReal> m_tolerance; ///< desired precision of the Conjugate Gradient Solution (ratio of current residual norm over initial residual norm)
-    Data<SReal> m_smallDenominatorThreshold; ///< minimum value of the denominator
+    SOFA_CLASS(GaussSeidelSolver, sofa::core::objectmodel::BaseObject);
+    GaussSeidelSolver();
+    virtual ~GaussSeidelSolver();
 
-public:
-    virtual void init() override;
-    virtual void reinit() override;
-
+    void test() {std::cout << "Gauss-Seidel" << std::endl;}
     /// Solve Mx=b usgin Gauss-Seidel algorithm
     ///
     ///  ^k+1   1          i-1       ^k+1    n        ^k
     /// x_i  = --- ( b_i - sum a_ij x_j   - sum a_ij x_j ), i /in {1,...,n}
     ///        a_ii        j=1              i+1
     void solve (Matrix& M, Vector& x, Vector& b);
+public:
+    Data<unsigned> m_maxIter; ///< maximum number of iterations of the Conjugate Gradient solution
+    ///Ca vavite dégager je pense
+    Data<SReal> m_tolerance; ///< desired precision of the Conjugate Gradient Solution (ratio of current residual norm over initial residual norm)
+    Data<SReal> m_smallDenominatorThreshold; ///< minimum value of the denominator
 
-    virtual bool insertInNode( objectmodel::BaseNode* node ) override;
-    virtual bool removeInNode( objectmodel::BaseNode* node ) override;
 };
 } //core namespace
 } //sofa namespace

@@ -1,37 +1,22 @@
 #include "GaussSeidelSolver.hpp"
+#include <sofa/core/ObjectFactory.h>
 
-using namespace sofa::core;
+using namespace sofa;
+using namespace core;
 
-void GaussSeidelSolver::init(){
-
-    if(m_maxIter.getValue() < 0)
-    {
-        msg_warning() << "'iterations' must be a positive value" << msgendl
-                      << "default value used: 25";
-        m_maxIter.setValue(25);
-    }
-
-    if(m_smallDenominatorThreshold.getValue() < 0.0)
-    {
-        msg_warning() << "'threshold' must be a positive value" << msgendl
-                      << "default value used: 1e-5";
-        m_smallDenominatorThreshold.setValue(1e-5);
-    }
-}
-
-void GaussSeidelSolver::reinit(){
-    init();
-}
+int GaussSeidelSolverClass = RegisterObject("A simple Gausse Seidel solver")
+                             .add< GaussSeidelSolver >()
+                             .addAlias("GSSolver")
+                             ;
 
 void GaussSeidelSolver::solve (Matrix& M, Vector& x, Vector& b){
 
-    //Prepare the matrix in case some elements on the diagonal are to close to 0
-    for( uint i = 0; i < M.rowSize(); ++i )
+    //Prepare the matrix in case some elements on the diagonal are too close to 0
+    uint n = M.getNbCols ();//In case the type changes
+    for( uint i = 0; i < n; ++i )
     {
         M[i][i] = std::abs( M[i][i] ) - m_smallDenominatorThreshold.getValue() < 0 ? m_smallDenominatorThreshold.getValue() : M[i][i];
     }
-
-    uint n = M.rowSize();
 
     for( uint nbIter = 0; nbIter < m_maxIter.getValue(); ++nbIter )
     {
@@ -49,20 +34,18 @@ void GaussSeidelSolver::solve (Matrix& M, Vector& x, Vector& b){
             }
             x[i] = ( b[i] - newX ) / M[i][i];
         }
+
+        Vector dist = b-x;
+        if ( dist.norm2()< m_tolerance.getValue ())
+            break;
     }
 }
 
-bool GaussSeidelSolver::insertInNode( objectmodel::BaseNode* node )
-{
-    node->addLinearSolver(this);
-    Inherit1::insertInNode(node);
-    return true;
+GaussSeidelSolver::GaussSeidelSolver(){
+    m_tolerance.setValue (1e-5);
+    m_maxIter.setValue(25);
+    m_smallDenominatorThreshold.setValue(1e-5);
 }
 
-bool GaussSeidelSolver::removeInNode( objectmodel::BaseNode* node )
-{
-    node->removeLinearSolver(this);
-    Inherit1::removeInNode(node);
-    return true;
+GaussSeidelSolver::~GaussSeidelSolver (){
 }
-

@@ -2,19 +2,26 @@
 #define PBDANIMATIONLOOP_HPP
 
 #include <sofa/core/behavior/BaseAnimationLoop.h>
+#include <sofa/simulation/Node.h>
+#include <SofaBaseMechanics/MechanicalObject.h>
+
+#include "solver/GaussSeidelSolver.hpp"
+#include "solver/PBDExplicitIntegrator.hpp"
+
+namespace sofa{
+namespace simulation{
 
 class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
 {
+protected:
+    PBDAnimationLoop(simulation::Node* gnode = NULL);
+    virtual ~PBDAnimationLoop();
 public:
     typedef sofa::core::behavior::BaseAnimationLoop Inherit;
     typedef sofa::core::objectmodel::BaseContext BaseContext;
     typedef sofa::core::objectmodel::BaseObjectDescription BaseObjectDescription;
     SOFA_CLASS(PBDAnimationLoop,sofa::core::behavior::BaseAnimationLoop);
-protected:
-    PBDAnimationLoop(simulation::Node* gnode = NULL);
 
-    virtual ~PBDAnimationLoop();
-public:
     /// Set the simulation node this animation loop is controlling
     virtual void setNode( simulation::Node* );
 
@@ -35,9 +42,15 @@ public:
         if (arg) obj->parse(arg);
         return obj;
     }
+private:
+
+    void getVelocitiesAndPosition(const sofa::component::container::MechanicalObject<sofa::defaulttype::Vec3Types> * Mo, std::vector<SReal>& velocities, std::vector<SReal>& position);
 
 protected :
-
+    sofa::core::PBDExplicitIntegrator m_integrator;
     simulation::Node* gnode;  ///< the node controlled by the loop
-
+};
 }
+}
+
+#endif //PBDANIMATIONLOOP_HPP
