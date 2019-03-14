@@ -4,9 +4,7 @@
 #include <sofa/core/behavior/BaseAnimationLoop.h>
 #include <sofa/simulation/Node.h>
 #include <SofaBaseMechanics/MechanicalObject.h>
-
-#include "solver/GaussSeidelSolver.hpp"
-#include "solver/PBDExplicitIntegrator.hpp"
+#include <sofa/core/behavior/ForceField.h>
 
 class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
 {
@@ -15,11 +13,20 @@ class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
     typedef sofa::core::objectmodel::Data<VecCoord>   Coordinates;
     typedef sofa::helper::ReadAccessor  <Coordinates> ReadCoord;
     typedef sofa::helper::WriteAccessor <Coordinates> WriteCoord;
+
     typedef sofa::defaulttype::Vec3Types::Deriv       Deriv;
     typedef sofa::helper::vector<Deriv>               VecDeriv;
     typedef sofa::core::objectmodel::Data<VecDeriv>   Derivatives;
     typedef sofa::helper::ReadAccessor  <Derivatives> ReadDeriv;
     typedef sofa::helper::WriteAccessor <Derivatives> WriteDeriv;
+
+    //Eigen
+    typedef Eigen::Vector3f Vec;
+    typedef Eigen::Vector4f Vec4;
+    typedef std::vector<Vec> VecList;
+    typedef std::vector<Vec4> Vec4List;
+    typedef Eigen::Matrix3f Mat;
+    typedef Eigen::Matrix4f Mat4;
 
 protected:
     PBDAnimationLoop(sofa::simulation::Node* gnode = NULL);
@@ -54,12 +61,19 @@ public:
     }
 
 protected :
-    //PBDExplicitIntegrator m_integrator;
-    sofa::core::behavior::OdeSolver * m_solver;
+
+    //Context and scene hierachy
     BaseContext* m_context;
-    sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * m_mechanicalObject;
-    ReadCoord* m_restPositions;
-    WriteCoord* m_freePosition;
     sofa::simulation::Node* gnode; ///< the node controlled by the loop
+
+    //Objects and Objects's actions
+    std::vector<sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * > m_mechanicalObjects;
+
+    //Solvers
+    //gnode->solver.get(ith)
+    uint frame=0;
+
+    //Datas and transformations
+
 };
 #endif //PBDANIMATIONLOOP_HPP

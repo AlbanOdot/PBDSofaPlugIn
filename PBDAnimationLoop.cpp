@@ -1,8 +1,9 @@
 #include "PBDAnimationLoop.hpp"
 #include <sofa/core/ObjectFactory.h>
 
-
+//Mecha stuffs
 #include <SofaBaseMechanics/MechanicalObject.h>
+#include<sofa/core/behavior/MultiVec.h>
 
 //Visitors
 #include <sofa/simulation/AnimateVisitor.h>
@@ -41,8 +42,6 @@ PBDAnimationLoop::PBDAnimationLoop(sofa::simulation::Node* _gnode)
 
 PBDAnimationLoop::~PBDAnimationLoop()
 {
-    delete m_restPositions;
-    delete m_freePosition;
 }
 
 
@@ -50,11 +49,8 @@ void PBDAnimationLoop::init()
 {
     if (!gnode)
         gnode = dynamic_cast<sofa::simulation::Node*>(this->getContext());
-    m_context = gnode->getContext ();
-    m_solver = gnode->solver[0];
-    m_mechanicalObject = m_context->getObjects< MechanicalObject< sofa::defaulttype::Vec3Types > >(BaseContext::SearchDown)[0];
-    // m_restPositions = new ReadCoord(m_mechanicalObject->readRestPositions());
-    //m_freePosition = new WriteCoord(m_mechanicalObject->writePositions());
+    m_context = gnode->getContext();
+    m_mechanicalObjects = m_context->getObjects< MechanicalObject< sofa::defaulttype::Vec3Types > >(BaseContext::SearchDown);
 }
 
 void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
@@ -64,140 +60,55 @@ void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
 
 void PBDAnimationLoop::step(const sofa::core::ExecParams* params, SReal dt)
 {
+    std::cout << "COMPUTING FRAME [ "<< frame++<<" ]"<<std::endl;
     if (dt == 0)
     {
         dt = gnode->getDt();
     }
+    sofa::core::MechanicalParams mparams(*params);
+    for(auto& Obj : m_mechanicalObjects)
+    {
+        std::cout << "<<INIT BEGIN | ...";
+        WriteCoord positions = Obj->writePositions ();
+        WriteDeriv velocities = Obj->writeVelocities ();
+        Vec3 zero;zero.set(0,0,0);
+        VecDeriv zeros(positions.ref().size(),zero);
+        Derivatives dforces(zeros);
 
+        std::cout << " | INIT END >>" << std::endl;
 
-    sofa::simulation::common::VectorOperations vop(params, getContext());
-    sofa::simulation::common::MechanicalOperations mop(params, getContext());
+        std::cout << "<<COMPUTE FORCES BEGIN | ...";
+        //Accumulates all external forces (Gravities,interactions etc)
+        for(uint i = 0;  i < gnode->forceField.size(); ++i)
+        {
+            auto ff = dynamic_cast<sofa::core::behavior::ForceField< sofa::defaulttype::Vec3Types > *>(gnode->forceField.get(i));
+            ff->addForce(&mparams,dforces,positions.ref(),velocities.ref ());
+        }
+        std::cout << " | COMPUTE FORCES END>>" << std::endl;
 
-    MultiVecCoord pos(&vop, sofa::core::VecCoordId::position() );
-    MultiVecDeriv vel(&vop, sofa::core::VecDerivId::velocity() );
-    MultiVecCoord freePos(&vop, sofa::core::VecCoordId::freePosition() );
+        WriteDeriv forces = dforces;
+        //std::cout << "Positions size : "<< positions.size() << std::endl;
+        //std::cout << "Velocities size : "<< velocities.size() << std::endl;
+        //std::cout << "Force size : "<< forces.size() << std::endl;
 
-    //HACKY_HACKS_DO_NOT_REPRODUCE
-    MultiVecCoord zero(&vop, sofa::core::VecCoordId::position() );
-    //zero = pos + pos * (-1)
-    sofa::simulation::MechanicalVOpVisitor zeroProducer(params, zero, pos, pos, -1.0);
-    zeroProducer.setMapped(true);
-    getContext()->executeVisitor(&zeroProducer);
-
-
-
-
-
-    sofa::core::ConstraintParams cparams(*params);
-    cparams.setX(freePos);
-
-    MultiVecDeriv dx(&vop, sofa::core::VecDerivId::dx()); dx.realloc(&vop, false, true);
-    MultiVecDeriv df(&vop, sofa::core::VecDerivId::dforce()); df.realloc(&vop, false, true);
-
-    sofa::simulation::MechanicalVInitVisitor< sofa::core::V_COORD >(params, sofa::core::VecCoordId::freePosition(), sofa::core::ConstVecCoordId::position(), true).execute(gnode);
-
-    //AnimateBeginEvent
-    sofa::simulation::AnimateBeginEvent ev ( dt );
-    sofa::simulation::PropagateEventVisitor act ( params, &ev );
-    gnode->execute ( act );
-
-    //Update the position
-    sofa::simulation::BehaviorUpdatePositionVisitor beh(params , dt);
-    gnode->execute(&beh);
-
-
-    //Prepare the system for an integration step
-    sofa::simulation::MechanicalBeginIntegrationVisitor beginVisitor(params, dt);
-    gnode->execute(&beginVisitor);
-
-
-    //Compute the new velocity and update free position
-    //vel = vel + m * sum(F_ext)
-    sofa::simulation::SolveVisitor freeMotion(params, dt, true);
-    gnode->execute(&freeMotion);
-    mop.projectResponse(vel);
-    mop.propagateDx(vel, true);
-
-    // freePos = pos + vel * dt
-    sofa::simulation::MechanicalVOpVisitor freePosVis(params, freePos, pos, vel, dt);
-    freePosVis.setMapped(true);
-    getContext()->executeVisitor(&freePosVis);
-
-    /*
-     *
-     *
-     * There should be a lot of code here to solve constraints
-     *
-     *
-     */
-
-    //vel = (freePos-pos)/dt
-    //freePos_minus_pos = freePos + pos*(-1)
-    MultiVecCoord freePos_minus_pos(&vop, sofa::core::VecCoordId::freePosition() );
-    sofa::simulation::MechanicalVOpVisitor freePos_m_pos(params, freePos_minus_pos, freePos, pos, -1.0);
-    freePos_m_pos.setMapped(true);
-    getContext()->executeVisitor(&freePos_m_pos);
-    //vel = zero + freePos_minus_pos * (1/dt)
-    sofa::simulation::MechanicalVOpVisitor newVel(params, vel, zero, freePos_minus_pos, 1./dt);
-    newVel.setMapped(true);
-    getContext()->executeVisitor(&newVel);
-    //pos = freePos
-    //pos = zero + freePos * 1
-    sofa::simulation::MechanicalVOpVisitor newPos(params, pos, zero, freePos, 1.0);
-    newPos.setMapped(true);
-    getContext()->executeVisitor(&newPos);
-
-    mop.propagateXAndV(pos, vel);
-
-
-    AnimateEndEvent evEnd ( dt );
-    PropagateEventVisitor propEvEnd ( params, &evEnd );
-    gnode->execute ( propEvEnd );
+        std::cout << "<<INTEGRATION BEGIN | ...";
+        for(uint i = 0; i < velocities.ref().size(); ++i)
+        {
+            velocities[i] = velocities[i] + dt * forces[i];
+            positions[i] = positions[i] + dt * velocities[i];
+        }
+        std::cout << " | INTEGRATION END>>" << std::endl;
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+    std::cout << std::endl;
 
     gnode->execute<UpdateMappingVisitor>(params);
-
-    UpdateMappingEndEvent evMapEnd ( dt );
-    PropagateEventVisitor propEvMapEnd ( params , &evMapEnd );
-    gnode->execute ( propEvMapEnd );
-
-    gnode->execute<UpdateBoundingBoxVisitor>(params);
-
-
-
-
-
-    /*
-               //Apply external forces on velocity only
-
-               sofa::helper::ReadAccessor<Data<VecDeriv>> externalForces = mechanicalObjects[currentMechObj]->readForces ();
-               m_integrator.integrateExternalForces(velocities,externalForces,dt);
-
-               //Temporary integration
-               Data<VecCoord> newPositions;
-               m_integrator.integrateTmp(newPositions,positions,velocities,dt);
-
-
-               //Generate collision constraint
-               //TODO ^^^^
-
-
-
-               //Project Constraints
-               //At the moment we create constraint on the fly because it's an alpha version of the alpha version
-
-               //Save the fixed points coordinates
-               //We set point 3 ,39 and 64 to be fixed this had to be done last
-               std::vector<uint> fixedPointIndices = {3,39,64};
-
-               //We set point 3 ,39 and 64 to be fixed this had to be done first
-               //m_integrator.solveFixedPointConstraint(tmpPos,positions,fixedPointIndices);
-
-               //We define rigid constraint and solve constraint in O(n) -> F(a->b) = - F(b->a)
-               m_integrator.solveDistanceConstraint(tmpPos,positions);
-
-               //Final integration
-               m_integrator.PBDUpdate(tmpPos,velocities,positions,dt);
-               //Find a way to put the new values into the mechanical object*/
+    {
+        UpdateMappingEndEvent ev ( dt );
+        PropagateEventVisitor act ( params , &ev );
+        gnode->execute ( act );
+    }
 
 
 }
