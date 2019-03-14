@@ -32,10 +32,9 @@
 #include <sofa/helper/AdvancedTimer.h>
 
 //#define SOFA_NO_VMULTIOP
-using namespace sofa;
-using namespace core;
 
-int PBDExplicitIntegratorClass = RegisterObject("A simple explicit time integrator")
+
+int PBDExplicitIntegratorClass = sofa::core::RegisterObject("A simple explicit time integrator")
                                  .add< PBDExplicitIntegrator >()
                                  .addAlias("PBDExplicit")
                                  ;
@@ -47,12 +46,13 @@ PBDExplicitIntegrator::PBDExplicitIntegrator()
 PBDExplicitIntegrator::~PBDExplicitIntegrator ()
 {
 }
-
-void PBDExplicitIntegrator::integrate(std::vector<SReal>& x, const std::vector<SReal>& dx, const SReal dt)
+/*
+void PBDExplicitIntegrator::integrate(Coordinates& x,
+                                      const Coordinates& dx,
+                                      const SReal dt)
 {
-    uint nbCoord = dx.size ();
 
-#pragma omp for
+//#pragma omp for
     for(int currCoord = 0; currCoord < nbCoord; currCoord += 3)
     {
         x[currCoord  ] += dt * dx[currCoord  ];
@@ -61,13 +61,16 @@ void PBDExplicitIntegrator::integrate(std::vector<SReal>& x, const std::vector<S
     }
 }
 
-void PBDExplicitIntegrator::integrateTmp(std::vector<SReal>& tmpposition,const  std::vector<SReal>& position, const std::vector<SReal>& velocities, SReal dt)
+void PBDExplicitIntegrator::integrateTmp(Coordinates& tmpposition,
+                                         const Coordinates& position,
+                                         const Derivatives& velocities,
+                                         SReal dt)
 {
 
     uint nbCoord = velocities.size ();
     tmpposition.resize (nbCoord);
 
-#pragma omp for
+//#pragma omp for
     for(int currCoord = 0; currCoord < nbCoord; currCoord += 3)
     {
         tmpposition[currCoord  ] = position[currCoord  ] + dt * velocities[currCoord  ];
@@ -77,11 +80,13 @@ void PBDExplicitIntegrator::integrateTmp(std::vector<SReal>& tmpposition,const  
 }
 
 
-void PBDExplicitIntegrator::integrateUniformExternalForces(std::vector<SReal>& velocities, const std::vector<SReal>& extForces, const SReal dt)
+void PBDExplicitIntegrator::integrateUniformExternalForces(Derivatives& velocities,
+                                                           const Derivatives& extForces,
+                                                           const SReal dt)
 {
     uint nbCoord = velocities.size ();
     for(int currFCoord = 0; currFCoord < extForces.size (); currFCoord += 3){
-        //#pragma omp for
+//#pragma omp for
         for(int currCoord = 0; currCoord < nbCoord; currCoord += 3)
         {
             velocities[currCoord  ] += dt * extForces[currFCoord];
@@ -92,7 +97,9 @@ void PBDExplicitIntegrator::integrateUniformExternalForces(std::vector<SReal>& v
 }
 
 
-void PBDExplicitIntegrator::solveDistanceConstraint(std::vector<SReal>& position, const std::vector<SReal>& truth, const std::vector<uint>& pointIdx)
+void PBDExplicitIntegrator::solveDistanceConstraint(Coordinates& position,
+                                                    const Coordinates& truth,
+                                                    const std::vector<uint>& pointIdx)
 {
     //It's highly recommended to do not give any indicies if you want to compute for all since the algorithm is twice as fast
     if(pointIdx.empty ()){
@@ -135,7 +142,9 @@ void PBDExplicitIntegrator::solveDistanceConstraint(std::vector<SReal>& position
 }
 
 
-void PBDExplicitIntegrator::solveFixedPointConstraint(std::vector<SReal>& position, const std::vector<SReal>& truth, const std::vector<uint>& pointIdx)
+void PBDExplicitIntegrator::solveDistanceConstraintAll(Coordinates& position,
+                                                       const Coordinates& truth,
+                                                       const std::vector<uint>& pointIdx)
 {
 
     //What's the point man ?
@@ -144,27 +153,32 @@ void PBDExplicitIntegrator::solveFixedPointConstraint(std::vector<SReal>& positi
         return;
     }
 
-    //No threading since usually there is a few point that are attached
-    /*for(uint idx: pointIdx)
+    //No threading since usually there is few attached points
+    for(uint idx: pointIdx)
     {
         std::cout << "Fixed point is :"<<idx<<std::endl;
+
         uint j = 3*idx;
-        position[3*j  ] = truth[3*j  ];
+        SReal t = position[3*j];
+        /*position[3*j  ] = truth[3*j  ];
         position[3*j+1] = truth[3*j+1];
         position[3*j+2] = truth[3*j+2];
 
-    }*/
+    }
 }
 
-void PBDExplicitIntegrator::solveDistanceConstraintAll(std::vector<SReal>& position, const std::vector<SReal>& truth, const std::vector<uint>& pointIdx)
+void PBDExplicitIntegrator::solveFixedPointConstraint(Coordinates& position,
+                                                      const Coordinates& truth,
+                                                      const std::vector<uint>& pointIdx)
 {
     uint nbCoord = position.size ();
 
-    //We cannot #pragma omp for here, random order might introduce instabillity
+    //We cannot //#pragma omp for here, random order might introduce instabillity
     for(uint j = 0; j < nbCoord; j += 3 )
     {
         Vector p1 = Vector(position[j],position[j+1],position[j+2]);
         Vector t1 = Vector(truth[j],truth[j+1],truth[j+2]);
+        //#pragma omp for
         for(uint i = j+3; i < nbCoord; i += 3){
             Vector p2 = Vector(position[i],position[i+1],position[i+2]);
             Vector t2 = Vector(truth[i],truth[i+1],truth[i+2]);
@@ -172,15 +186,20 @@ void PBDExplicitIntegrator::solveDistanceConstraintAll(std::vector<SReal>& posit
             SReal dist = p2p1.norm();
             //need to change 0.5 by weight1 / (weight2 + weight1) and weight1 / (weight2 + weight1) -> We suppose equal mass
             Vector disparity = (0.5 * (1.0 - (t1-t2).norm() / dist ) ) * p2p1; //parenthesis to avoid real to vec3 multiplications.
-            p1 += disparity;
             p2 -= disparity;
-            position[j] = p1[0]; position[j+1] = p1[1]; position[j+2] = p1[2];
-            position[j] = p2[0]; position[j+1] = p2[1]; position[j+2] = p2[2];
+            position[i] = p2[0]; position[i+1] = p2[1]; position[i+2] = p2[2];
+            //#pragma omp critical
+            {
+                position[j] = p1[0] + disparity[0]; position[j+1] = p1[1] + disparity[1]; position[j+2] = p1[2] + disparity[2];
+            }
         }
     }
 }
 
-void PBDExplicitIntegrator::PBDUpdate(const std::vector<SReal>& newPosition, std::vector<SReal>& velocity, std::vector<SReal>& position, const SReal dt)
+void PBDExplicitIntegrator::PBDUpdate(const Coordinates& newPosition,
+                                      Derivatives& velocity,
+                                      Coordinates& position,
+                                      const SReal dt)
 {
     uint nbCoord = position.size ();
     SReal one_over_dt = 1.0 / dt;
@@ -195,3 +214,4 @@ void PBDExplicitIntegrator::PBDUpdate(const std::vector<SReal>& newPosition, std
         position[i+2] = newPosition[i+2];
     }
 }
+*/

@@ -8,13 +8,21 @@
 #include "solver/GaussSeidelSolver.hpp"
 #include "solver/PBDExplicitIntegrator.hpp"
 
-namespace sofa{
-namespace simulation{
-
 class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
 {
+    typedef sofa::defaulttype::Vec3Types::Coord       Coord;
+    typedef sofa::helper::vector<Coord>               VecCoord;
+    typedef sofa::core::objectmodel::Data<VecCoord>   Coordinates;
+    typedef sofa::helper::ReadAccessor  <Coordinates> ReadCoord;
+    typedef sofa::helper::WriteAccessor <Coordinates> WriteCoord;
+    typedef sofa::defaulttype::Vec3Types::Deriv       Deriv;
+    typedef sofa::helper::vector<Deriv>               VecDeriv;
+    typedef sofa::core::objectmodel::Data<VecDeriv>   Derivatives;
+    typedef sofa::helper::ReadAccessor  <Derivatives> ReadDeriv;
+    typedef sofa::helper::WriteAccessor <Derivatives> WriteDeriv;
+
 protected:
-    PBDAnimationLoop(simulation::Node* gnode = NULL);
+    PBDAnimationLoop(sofa::simulation::Node* gnode = NULL);
     virtual ~PBDAnimationLoop();
 public:
     typedef sofa::core::behavior::BaseAnimationLoop Inherit;
@@ -23,10 +31,12 @@ public:
     SOFA_CLASS(PBDAnimationLoop,sofa::core::behavior::BaseAnimationLoop);
 
     /// Set the simulation node this animation loop is controlling
-    virtual void setNode( simulation::Node* );
+    virtual void setNode( sofa::simulation::Node* );
 
     /// Set the simulation node to the local context if not specified previously
     virtual void init() override;
+
+//    virtual void bwdInit () override;
 
     /// perform one animation step
     virtual void step(const sofa::core::ExecParams* params, SReal dt) override;
@@ -36,21 +46,20 @@ public:
     template<class T>
     static typename T::SPtr create(T*, BaseContext* context, BaseObjectDescription* arg)
     {
-        simulation::Node* gnode = dynamic_cast<simulation::Node*>(context);
+        sofa::simulation::Node* gnode = dynamic_cast<sofa::simulation::Node*>(context);
         typename T::SPtr obj = sofa::core::objectmodel::New<T>(gnode);
         if (context) context->addObject(obj);
         if (arg) obj->parse(arg);
         return obj;
     }
-private:
-
-    void getVelocitiesAndPosition(const sofa::component::container::MechanicalObject<sofa::defaulttype::Vec3Types> * Mo, std::vector<SReal>& velocities, std::vector<SReal>& position);
 
 protected :
-    sofa::core::PBDExplicitIntegrator m_integrator;
-    simulation::Node* gnode;  ///< the node controlled by the loop
+    //PBDExplicitIntegrator m_integrator;
+    sofa::core::behavior::OdeSolver * m_solver;
+    BaseContext* m_context;
+    sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * m_mechanicalObject;
+    ReadCoord* m_restPositions;
+    WriteCoord* m_freePosition;
+    sofa::simulation::Node* gnode; ///< the node controlled by the loop
 };
-}
-}
-
 #endif //PBDANIMATIONLOOP_HPP
