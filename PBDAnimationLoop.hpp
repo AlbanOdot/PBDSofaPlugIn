@@ -43,7 +43,7 @@ public:
     /// Set the simulation node to the local context if not specified previously
     virtual void init() override;
 
-    //    virtual void bwdInit () override;
+    virtual void bwdInit () override;
 
     /// perform one animation step
     virtual void step(const sofa::core::ExecParams* params, SReal dt) override;
@@ -62,20 +62,20 @@ public:
 
 private:
 
-    void extForces (const sofa::core::MechanicalParams * mparams,
+    inline void extForces (const sofa::core::MechanicalParams * mparams,
                     Derivatives& f,
                     WriteCoord& p,
                     const WriteCoord& x,
                     WriteDeriv& v ,
                     SReal dt);
 
-    void solveConstraints(ReadCoord& rest,
+    inline void solveConstraints(const uint mID,
                           WriteCoord& p);
 
-    void solveStretch(ReadCoord& rest,
+    inline void solveStretch(const uint mID,
                       WriteCoord& p);
 
-    void solveFixedPoint(ReadCoord& rest, WriteCoord& p);
+    inline void solveFixedPoint(const uint mID, WriteCoord& p);
 protected :
 
     //Context and scene hierachy
@@ -89,6 +89,9 @@ protected :
     //gnode->solver.get(ith)
 
     //Datas and transformations
-
+    //m_topology[mObject][currentVertex][neighbor]
+    std::vector<std::vector<std::vector<std::pair<uint,SReal>>>> m_topology; //Neighor of each point of each mechanicalobject
+    //m_rest[mObject][currentVertex]
+    std::vector<ReadCoord> m_rest;//Rest pos of each mechnical object
 };
 #endif //PBDANIMATIONLOOP_HPP

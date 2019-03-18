@@ -54,6 +54,43 @@ void PBDAnimationLoop::init()
     m_mechanicalObjects = m_context->getObjects< MechanicalObject< sofa::defaulttype::Vec3Types > >(BaseContext::SearchDown);
 }
 
+void PBDAnimationLoop::bwdInit ()
+{
+    //Get all rest positions
+    for(auto& obj : m_mechanicalObjects)
+    {
+        m_rest.emplace_back(obj->readRestPositions());
+    }
+
+    //On récupère les topologies
+    auto topologies = m_context->getObjects<sofa::core::topology::BaseMeshTopology>(BaseContext::SearchDown);
+
+    for(uint t = 0; t < topologies.size (); ++t)
+    {
+        // object[currentVertex][neighbor].first == neighbors's index
+        // object[currentVertex][neighbor].second == norm(rest_pos[currentVertex],rest_pos[neighbor])
+        std::vector<std::vector<std::pair<uint,SReal>>> object;
+        //We assume 1 topology per object and vice versa
+        for(uint i = 0; i < m_rest[t].size(); ++i)
+        {
+            //Get the neighbors of point I
+            const auto& neighbors = topologies[t]->getVerticesAroundVertex (i);
+            std::vector<std::pair<uint,SReal>> neighborhood;
+            for(uint j = 0; j < neighbors.size(); ++j)
+            {
+                if( neighbors[j] > i )//Unidirectionnal neighborhood
+                {
+                    SReal d = (m_rest[t][i] - m_rest[t][neighbors[j]]).norm();
+                    std::pair<uint,SReal> neighbor(neighbors[j],d);
+                    neighborhood.emplace_back(neighbor);
+                }
+            }
+            object.emplace_back(neighborhood);
+        }
+        m_topology.emplace_back(object);
+    }
+}
+
 void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
 {
     gnode=n;
@@ -67,13 +104,11 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         dt = gnode->getDt();
     }
     sofa::core::MechanicalParams mparams(*params);
-
-    for(auto& Obj : m_mechanicalObjects)
+    for(uint mObj = 0; mObj < m_mechanicalObjects.size (); ++mObj)
     {
         //Object parameters
-        WriteCoord x = Obj->writePositions ();
-        WriteDeriv v = Obj->writeVelocities ();
-        ReadDeriv rest = Obj->readRestPositions ();
+        WriteCoord x = m_mechanicalObjects[mObj]->writePositions ();
+        WriteDeriv v = m_mechanicalObjects[mObj]->writeVelocities ();
         uint pointCount = x.ref ().size();
 
         //External forces
@@ -90,7 +125,7 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         extForces (&mparams,dFext,p,x,v,dt);
 
         //Solve all of the constraints
-        solveConstraints(rest,p);
+        solveConstraints(mObj,p);
 
         //Integrate using PBD method
         for(uint i = 0; i < pointCount; ++i)
@@ -100,7 +135,6 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         }
 
     }
-
 
     gnode->execute<UpdateMappingVisitor>(params);
     {
@@ -125,11 +159,10 @@ void PBDAnimationLoop::extForces (const sofa::core::MechanicalParams * mparams,
     for(uint i = 0;  i < gnode->forceField.size(); ++i)
     {
         auto ff = dynamic_cast<sofa::core::behavior::ForceField< sofa::defaulttype::Vec3Types > *>(gnode->forceField.get(i));
-        ff->addForce(mparams,f,x.ref(),v.ref ());
+        ff->addForce(mparams,f,x.ref(),v.ref());
     }
 
-    WriteDeriv Fext = f;
-    //#pragma omp parallel for
+    const WriteDeriv& Fext = f;
     for(uint i = 0; i < v.ref().size(); ++i)
     {
         v[i] = v[i] + dt * Fext[i];
@@ -138,50 +171,50 @@ void PBDAnimationLoop::extForces (const sofa::core::MechanicalParams * mparams,
 
 }
 
-void PBDAnimationLoop::solveConstraints(ReadCoord& rest, WriteCoord& p)
+void PBDAnimationLoop::solveConstraints(const uint mID, WriteCoord& p)
 {
     //From here we solve all of the constraints -> solve on p
-    uint max_iter = 1;
+    uint max_iter = 20;
     for(uint nbIter = 0; nbIter < max_iter; ++nbIter)
     {
-        solveStretch(rest,p);
-
-        solveFixedPoint(rest,p);
+        solveStretch(mID,p);
+        solveFixedPoint(mID,p);
     }
 }
 
-void PBDAnimationLoop::solveStretch(ReadCoord& rest, WriteCoord& p)
+void PBDAnimationLoop::solveStretch(const uint mID, WriteCoord& p)
 {
 
     //Stretching constraint
-    //O(0.5(n+1)n) : F(a->b) = -F(b->a)
     //Solving Gauss-Seidel's style
     //Use an accumulator to put it as Jacobi
-    //TODO utiliser la topology
     uint pointCount =  p.ref().size();
+    const auto& topology = m_topology[mID];
+    static const SReal k = 0.5;//std::pow(1.f-0.95f,1/20);
     for( uint i = 0; i < pointCount; ++i)
     {
-        for( uint j = i+1; j < pointCount; ++j)
+        const auto& voisins = topology[i];
+       for( const auto& voisin : voisins)
         {
-            const auto& p_ij = p[i] - p[j];
+            const Vec3& p_ij = p[i] - p[voisin.first];
             SReal l = p_ij.norm();
-            SReal d = (rest[i]-rest[j]).norm();
-            const auto& displacement = 0.5*(l-d)/l;
-            const auto& vdisplacement = displacement * p_ij;
-            p[i] -= vdisplacement;
-            p[j] += vdisplacement;
+            SReal d = voisin.second;
+            const auto& displacement = 0.5*(l-d)/l * p_ij;
+            p[i] -= k * displacement;
+            p[voisin.first] += k * displacement;
         }
     }
+
 }
 
-void PBDAnimationLoop::solveFixedPoint(ReadCoord& rest, WriteCoord& p)
+void PBDAnimationLoop::solveFixedPoint(const uint mID, WriteCoord& p)
 {
     //Constrainst related stuff
-    std::vector<uint> fixedIdx = {3};
+    std::vector<uint> fixedIdx = {3,39,64};
 
     //Fixed point constraint
     for(const auto& idx : fixedIdx )
     {
-        p[idx] = rest[idx];
+        p[idx] = m_rest[mID][idx];
     }
 }
