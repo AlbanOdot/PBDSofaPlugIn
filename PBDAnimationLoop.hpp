@@ -43,7 +43,7 @@ public:
     /// Set the simulation node to the local context if not specified previously
     virtual void init() override;
 
-//    virtual void bwdInit () override;
+    //    virtual void bwdInit () override;
 
     /// perform one animation step
     virtual void step(const sofa::core::ExecParams* params, SReal dt) override;
@@ -60,6 +60,22 @@ public:
         return obj;
     }
 
+private:
+
+    void extForces (const sofa::core::MechanicalParams * mparams,
+                    Derivatives& f,
+                    WriteCoord& p,
+                    const WriteCoord& x,
+                    WriteDeriv& v ,
+                    SReal dt);
+
+    void solveConstraints(ReadCoord& rest,
+                          WriteCoord& p);
+
+    void solveStretch(ReadCoord& rest,
+                      WriteCoord& p);
+
+    void solveFixedPoint(ReadCoord& rest, WriteCoord& p);
 protected :
 
     //Context and scene hierachy
@@ -71,7 +87,6 @@ protected :
 
     //Solvers
     //gnode->solver.get(ith)
-    uint frame=0;
 
     //Datas and transformations
 

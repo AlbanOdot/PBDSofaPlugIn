@@ -16,6 +16,7 @@
 #include <sofa/simulation/UpdateBoundingBoxVisitor.h>
 #include <sofa/simulation/UpdateMappingVisitor.h>
 
+#include <omp.h>
 
 
 
@@ -58,50 +59,48 @@ void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
     gnode=n;
 }
 
-void PBDAnimationLoop::step(const sofa::core::ExecParams* params, SReal dt)
+void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
+                            SReal dt)
 {
-    std::cout << "COMPUTING FRAME [ "<< frame++<<" ]"<<std::endl;
     if (dt == 0)
     {
         dt = gnode->getDt();
     }
     sofa::core::MechanicalParams mparams(*params);
+
     for(auto& Obj : m_mechanicalObjects)
     {
-        std::cout << "<<INIT BEGIN | ...";
-        WriteCoord positions = Obj->writePositions ();
-        WriteDeriv velocities = Obj->writeVelocities ();
+        //Object parameters
+        WriteCoord x = Obj->writePositions ();
+        WriteDeriv v = Obj->writeVelocities ();
+        ReadDeriv rest = Obj->readRestPositions ();
+        uint pointCount = x.ref ().size();
+
+        //External forces
         Vec3 zero;zero.set(0,0,0);
-        VecDeriv zeros(positions.ref().size(),zero);
-        Derivatives dforces(zeros);
+        VecDeriv zerosDeriv(x.ref().size(),zero);
+        Derivatives dFext(zerosDeriv);
 
-        std::cout << " | INIT END >>" << std::endl;
+        //We will compute constrainst on p
+        VecCoord freeVecCoord(x.ref());
+        Coordinates freeCoord(freeVecCoord);
+        WriteCoord p = freeCoord;
 
-        std::cout << "<<COMPUTE FORCES BEGIN | ...";
-        //Accumulates all external forces (Gravities,interactions etc)
-        for(uint i = 0;  i < gnode->forceField.size(); ++i)
+        //Apply external forces on p
+        extForces (&mparams,dFext,p,x,v,dt);
+
+        //Solve all of the constraints
+        solveConstraints(rest,p);
+
+        //Integrate using PBD method
+        for(uint i = 0; i < pointCount; ++i)
         {
-            auto ff = dynamic_cast<sofa::core::behavior::ForceField< sofa::defaulttype::Vec3Types > *>(gnode->forceField.get(i));
-            ff->addForce(&mparams,dforces,positions.ref(),velocities.ref ());
+            v[i] = (p[i] - x[i])/dt;
+            x[i] = p[i];
         }
-        std::cout << " | COMPUTE FORCES END>>" << std::endl;
 
-        WriteDeriv forces = dforces;
-        //std::cout << "Positions size : "<< positions.size() << std::endl;
-        //std::cout << "Velocities size : "<< velocities.size() << std::endl;
-        //std::cout << "Force size : "<< forces.size() << std::endl;
-
-        std::cout << "<<INTEGRATION BEGIN | ...";
-        for(uint i = 0; i < velocities.ref().size(); ++i)
-        {
-            velocities[i] = velocities[i] + dt * forces[i];
-            positions[i] = positions[i] + dt * velocities[i];
-        }
-        std::cout << " | INTEGRATION END>>" << std::endl;
-        std::cout << std::endl;
     }
-    std::cout << std::endl;
-    std::cout << std::endl;
+
 
     gnode->execute<UpdateMappingVisitor>(params);
     {
@@ -111,4 +110,78 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params, SReal dt)
     }
 
 
+}
+
+
+void PBDAnimationLoop::extForces (const sofa::core::MechanicalParams * mparams,
+                                  Derivatives& f,
+                                  WriteCoord& p,
+                                  const WriteCoord& x,
+                                  WriteDeriv& v,
+                                  SReal dt)
+{
+
+    //Accumulates all external forces (Gravities,interactions etc)
+    for(uint i = 0;  i < gnode->forceField.size(); ++i)
+    {
+        auto ff = dynamic_cast<sofa::core::behavior::ForceField< sofa::defaulttype::Vec3Types > *>(gnode->forceField.get(i));
+        ff->addForce(mparams,f,x.ref(),v.ref ());
+    }
+
+    WriteDeriv Fext = f;
+    //#pragma omp parallel for
+    for(uint i = 0; i < v.ref().size(); ++i)
+    {
+        v[i] = v[i] + dt * Fext[i];
+        p[i] = x[i] + dt * v[i];
+    }
+
+}
+
+void PBDAnimationLoop::solveConstraints(ReadCoord& rest, WriteCoord& p)
+{
+    //From here we solve all of the constraints -> solve on p
+    uint max_iter = 1;
+    for(uint nbIter = 0; nbIter < max_iter; ++nbIter)
+    {
+        solveStretch(rest,p);
+
+        solveFixedPoint(rest,p);
+    }
+}
+
+void PBDAnimationLoop::solveStretch(ReadCoord& rest, WriteCoord& p)
+{
+
+    //Stretching constraint
+    //O(0.5(n+1)n) : F(a->b) = -F(b->a)
+    //Solving Gauss-Seidel's style
+    //Use an accumulator to put it as Jacobi
+    //TODO utiliser la topology
+    uint pointCount =  p.ref().size();
+    for( uint i = 0; i < pointCount; ++i)
+    {
+        for( uint j = i+1; j < pointCount; ++j)
+        {
+            const auto& p_ij = p[i] - p[j];
+            SReal l = p_ij.norm();
+            SReal d = (rest[i]-rest[j]).norm();
+            const auto& displacement = 0.5*(l-d)/l;
+            const auto& vdisplacement = displacement * p_ij;
+            p[i] -= vdisplacement;
+            p[j] += vdisplacement;
+        }
+    }
+}
+
+void PBDAnimationLoop::solveFixedPoint(ReadCoord& rest, WriteCoord& p)
+{
+    //Constrainst related stuff
+    std::vector<uint> fixedIdx = {3};
+
+    //Fixed point constraint
+    for(const auto& idx : fixedIdx )
+    {
+        p[idx] = rest[idx];
+    }
 }
