@@ -7,6 +7,7 @@
 #include <sofa/core/behavior/ForceField.h>
 #include "solver/PBDExplicitIntegrator.hpp"
 #include "object/PBDObject.hpp"
+
 class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
 {
     typedef sofa::defaulttype::Vec3Types::Coord       Coord;

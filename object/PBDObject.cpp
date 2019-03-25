@@ -5,7 +5,6 @@ PBDObject::PBDObject(sofa::component::container::MechanicalObject< sofa::default
 {
     if(m_mechanicalObject && m_sofa_topology)
     {
-        std::cout << "On initialise tout"<<std::endl;
         m_rest.emplace_back(m_mechanicalObject->readRestPositions ());
         optimizeTopology ();
     }

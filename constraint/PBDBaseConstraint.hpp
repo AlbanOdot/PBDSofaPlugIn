@@ -3,18 +3,31 @@
 
 #include <sofa/core/objectmodel/BaseObject.h>
 #include <sofa/core/objectmodel/Data.h>
+#include "../object/PBDObject.hpp"
 
 class SOFA_CORE_API PBDBaseConstraint : public virtual sofa::core::objectmodel::BaseObject
 {
-    sofa::core::objectmodel::Data<std::vector<uint>> IndexSet;
 
 public:
     SOFA_ABSTRACT_CLASS(PBDBaseConstraint, sofa::core::objectmodel::BaseObject);
-    SOFA_BASE_CAST_IMPLEMENTATION(PBDBaseConstraint)
+    //SOFA_BASE_CAST_IMPLEMENTATION(PBDBaseConstraint)
+    typedef sofa::defaulttype::Vec3Types::Coord       Coord;
+    typedef sofa::helper::vector<Coord>               VecCoord;
+    typedef sofa::core::objectmodel::Data<VecCoord>   Coordinates;
+    typedef sofa::helper::ReadAccessor  <Coordinates> ReadCoord;
+    typedef sofa::helper::WriteAccessor <Coordinates> WriteCoord;
 
+    typedef sofa::defaulttype::Vec3Types::Deriv       Deriv;
+    typedef sofa::helper::vector<Deriv>               VecDeriv;
+    typedef sofa::core::objectmodel::Data<VecDeriv>   Derivatives;
+    typedef sofa::helper::ReadAccessor  <Derivatives> ReadDeriv;
+    typedef sofa::helper::WriteAccessor <Derivatives> WriteDeriv;
+
+    typedef sofa::core::objectmodel::Data<sofa::helper::vector<uint>> IndexSet;
+    typedef sofa::defaulttype::BaseMatrix Matrix;
 protected:
     PBDBaseConstraint(bool optisolv = false)
-        : m_indices(initData(&m_indices, 0, "indices", "ID of the vertices on wich this constraint is to apply")),
+        : m_indices(initData(&m_indices, sofa::helper::vector<uint>({0}), "indices", "ID of the vertices on wich this constraint is to apply")),
           m_hasOptimizedSolver(optisolv){}
 
     virtual ~PBDBaseConstraint() { }
@@ -23,15 +36,9 @@ public:
 
     inline bool hasOptiSolver() { return m_hasOptimizedSolver;}
 
-    /// Construct the Jacobian Matrix
-    ///
-    /// \param cId is the result constraint sparse matrix Id
-    /// \param cIndex is the index of the next constraint equation: when building the constraint matrix, you have to use this index, and then update it
-    /// \param cParams defines the state vectors to use for positions and velocities. Also defines the order of the constraint (POS, VEL, ACC)
-    template<typename T>
-    virtual void getConstraintMatrix(T& M) = 0;
+    virtual Matrix * getConstraintMatrix() = 0;
 
-    virtual void solve() = 0;
+    virtual void solve(const PBDObject& object, WriteCoord& p) = 0;
 
 public:
     bool m_hasOptimizedSolver;

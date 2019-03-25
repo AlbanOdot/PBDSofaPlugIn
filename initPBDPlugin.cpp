@@ -33,6 +33,6 @@ extern "C" {
     const char* getModuleComponentList()
     {
         // Comma-separated list of the components in this plugin, empty for now
-        return "PBDAnimationLoop";
+        return "PBDAnimationLoop,PBDFixedPoint";
     }
 }
