@@ -1,5 +1,5 @@
-#ifndef PBDANIMATIONLOOP_HPP
-#define PBDANIMATIONLOOP_HPP
+#ifndef PBDBASECONSTRAINT_HPP
+#define PBDBASECONSTRAINT_HPP
 
 #include <sofa/core/objectmodel/BaseObject.h>
 #include <sofa/core/objectmodel/Data.h>
@@ -27,7 +27,7 @@ public:
     typedef sofa::defaulttype::BaseMatrix Matrix;
 protected:
     PBDBaseConstraint(bool optisolv = false)
-        : m_indices(initData(&m_indices, sofa::helper::vector<uint>({0}), "indices", "ID of the vertices on wich this constraint is to apply")),
+        : m_indices(initData(&m_indices, sofa::helper::vector<uint>(), "indices", "ID of the vertices on wich this constraint is to apply")),
           m_hasOptimizedSolver(optisolv){}
 
     virtual ~PBDBaseConstraint() { }
@@ -38,7 +38,7 @@ public:
 
     virtual Matrix * getConstraintMatrix() = 0;
 
-    virtual void solve(const PBDObject& object, WriteCoord& p) = 0;
+    virtual void solve(PBDObject& object, WriteCoord& p) = 0;
 
 public:
     bool m_hasOptimizedSolver;

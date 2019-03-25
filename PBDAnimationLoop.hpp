@@ -7,6 +7,7 @@
 #include <sofa/core/behavior/ForceField.h>
 #include "solver/PBDExplicitIntegrator.hpp"
 #include "object/PBDObject.hpp"
+#include "constraint/PBDBaseConstraint.hpp"
 
 class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
 {
@@ -30,10 +31,9 @@ class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
     typedef Eigen::Matrix3f Mat;
     typedef Eigen::Matrix4f Mat4;
 
-protected:
+public:
     PBDAnimationLoop(sofa::simulation::Node* gnode = NULL);
     virtual ~PBDAnimationLoop();
-public:
     typedef sofa::core::behavior::BaseAnimationLoop Inherit;
     typedef sofa::core::objectmodel::BaseContext BaseContext;
     typedef sofa::core::objectmodel::BaseObjectDescription BaseObjectDescription;
@@ -64,11 +64,11 @@ public:
 
 private:
 
-    inline void solveConstraints(const uint mID,
-                          WriteCoord& p);
+    inline void solveConstraints(PBDObject& object,
+                                 WriteCoord& p);
 
     inline void solveStretch(const uint mID,
-                      WriteCoord& p);
+                             WriteCoord& p);
 
     inline void solveFixedPoint(const uint mID, WriteCoord& p);
 protected :
@@ -81,9 +81,8 @@ protected :
     std::vector<sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * > m_mechanicalObjects;
 
     //Solvers
-    //gnode->solver.get(ith)
     PBDExplicitIntegrator m_integrator;
-
+    std::vector<PBDBaseConstraint * > m_constraint;
     //Datas and transformations
     std::vector<PBDObject> m_objects;
 

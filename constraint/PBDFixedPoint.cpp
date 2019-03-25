@@ -14,11 +14,10 @@ sofa::defaulttype::BaseMatrix * PBDFixedPoint::getConstraintMatrix ()
     return nullptr;
 }
 
-void PBDFixedPoint::solve(const PBDObject &object, WriteCoord &p)
+void PBDFixedPoint::solve(PBDObject &object, WriteCoord &p)
 {
     for(const auto& idx : m_indices.getValue ())
     {
         p[idx] = object.rest ()[idx];
     }
 }
-

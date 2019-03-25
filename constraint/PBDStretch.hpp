@@ -1,18 +1,18 @@
-#ifndef PBDFIXEDPOINT_HPP
-#define PBDFIXEDPOINT_HPP
+#ifndef PBDSTRECH_HPP
+#define PBDSTRECH_HPP
+
 #include "PBDBaseConstraint.hpp"
 #include <SofaBaseLinearSolver/FullMatrix.h>
 #include <sofa/core/objectmodel/BaseContext.h>
 #include <sofa/simulation/Node.h>
 
-class PBDFixedPoint : public PBDBaseConstraint
+class PBDStretch : public PBDBaseConstraint
 {
 public:
-
-    PBDFixedPoint(sofa::simulation::Node* gnode = NULL){}
-    PBDFixedPoint(uint objectSize);
+    PBDStretch(sofa::simulation::Node* gnode = NULL){}
+    PBDStretch(uint objectSize);
     virtual Matrix* getConstraintMatrix();
-    virtual void solve( PBDObject& object, WriteCoord& p);
+    virtual void solve(PBDObject& object, WriteCoord& p);
 
     /// Construction method called by ObjectFactory.
     template<class T>
@@ -25,6 +25,7 @@ public:
     }
 protected:
     sofa::component::linearsolver::FullMatrix<float> m_constraint;
+    sofa::core::objectmodel::Data<SReal> m_k;
 };
 
-#endif // PBDFIXEDPOINT_HPP
+#endif // PBDSTRECH_HPP
