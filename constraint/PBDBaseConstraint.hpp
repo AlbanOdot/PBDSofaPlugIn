@@ -2,51 +2,40 @@
 #define PBDANIMATIONLOOP_HPP
 
 #include <sofa/core/objectmodel/BaseObject.h>
-#include <sofa/simulation/Node.h>
+#include <sofa/core/objectmodel/Data.h>
 
-class PBDBaseConstraint : public sofa::core::behavior::BaseObject
+class SOFA_CORE_API PBDBaseConstraint : public virtual sofa::core::objectmodel::BaseObject
 {
-    //Eigen
-    typedef Eigen::Vector3f Vec;
-    typedef Eigen::Vector4f Vec4;
-    typedef std::vector<Vec> VecList;
-    typedef std::vector<Vec4> Vec4List;
-    typedef Eigen::Matrix3f Mat;
-    typedef Eigen::Matrix4f Mat4;
+    sofa::core::objectmodel::Data<std::vector<uint>> IndexSet;
 
 public:
-    SOFA_ABSTRACT_CLASS(BaseAnimationLoop, objectmodel::BaseObject);
-    SOFA_BASE_CAST_IMPLEMENTATION(BaseAnimationLoop)
+    SOFA_ABSTRACT_CLASS(PBDBaseConstraint, sofa::core::objectmodel::BaseObject);
+    SOFA_BASE_CAST_IMPLEMENTATION(PBDBaseConstraint)
 
 protected:
-    BaseAnimationLoop();
+    PBDBaseConstraint(bool optisolv = false)
+        : m_indices(initData(&m_indices, 0, "indices", "ID of the vertices on wich this constraint is to apply")),
+          m_hasOptimizedSolver(optisolv){}
 
-    virtual ~BaseAnimationLoop();
-
-    /// Stores starting time of the simulation
-    SReal m_resetTime;
-
-    /// Save the initial state for later uses in reset()
-    virtual void storeResetState() override;
-
-
-private:
-    BaseAnimationLoop(const BaseAnimationLoop& n) ;
-    BaseAnimationLoop& operator=(const BaseAnimationLoop& n) ;
+    virtual ~PBDBaseConstraint() { }
 
 public:
-    /// Main computation method.
+
+    inline bool hasOptiSolver() { return m_hasOptimizedSolver;}
+
+    /// Construct the Jacobian Matrix
     ///
-    /// Specify and execute all computations for computing a timestep, such
-    /// as one or more collisions and integrations stages.
+    /// \param cId is the result constraint sparse matrix Id
+    /// \param cIndex is the index of the next constraint equation: when building the constraint matrix, you have to use this index, and then update it
+    /// \param cParams defines the state vectors to use for positions and velocities. Also defines the order of the constraint (POS, VEL, ACC)
+    template<typename T>
+    virtual void getConstraintMatrix(T& M) = 0;
+
     virtual void solve() = 0;
 
-    /// Returns starting time of the simulation
-    SReal getResetTime() const;
+public:
+    bool m_hasOptimizedSolver;
+    IndexSet m_indices; ///< Indices on wich to apply the constraint
 
-    virtual bool insertInNode( objectmodel::BaseNode* node ) override;
-    virtual bool removeInNode( objectmodel::BaseNode* node ) override;
-
-};
 };
 #endif

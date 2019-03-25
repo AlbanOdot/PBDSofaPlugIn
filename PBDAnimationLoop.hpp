@@ -6,7 +6,7 @@
 #include <SofaBaseMechanics/MechanicalObject.h>
 #include <sofa/core/behavior/ForceField.h>
 #include "solver/PBDExplicitIntegrator.hpp"
-
+#include "object/PBDObject.hpp"
 class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
 {
     typedef sofa::defaulttype::Vec3Types::Coord       Coord;
@@ -84,9 +84,7 @@ protected :
     PBDExplicitIntegrator m_integrator;
 
     //Datas and transformations
-    //m_topology[mObject][currentVertex][neighbor]
-    std::vector<std::vector<std::vector<std::pair<uint,SReal>>>> m_topology; //Neighor of each point of each mechanicalobject
-    //m_rest[mObject][currentVertex]
-    std::vector<ReadCoord> m_rest;//Rest pos of each mechnical object
+    std::vector<PBDObject> m_objects;
+
 };
 #endif //PBDANIMATIONLOOP_HPP
