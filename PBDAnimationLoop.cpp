@@ -81,8 +81,7 @@ void PBDAnimationLoop::bwdInit ()
                 if( neighbors[j] > i )//Unidirectionnal neighborhood
                 {
                     SReal d = (m_rest[t][i] - m_rest[t][neighbors[j]]).norm();
-                    std::pair<uint,SReal> neighbor(neighbors[j],d);
-                    neighborhood.emplace_back(neighbor);
+                    neighborhood.emplace_back(std::pair<uint,SReal>(neighbors[j],d));
                 }
             }
             object.emplace_back(neighborhood);
@@ -99,11 +98,15 @@ void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
 void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
                             SReal dt)
 {
+
     if (dt == 0)
     {
         dt = gnode->getDt();
     }
     sofa::core::MechanicalParams mparams(*params);
+    static const Vec3 zero(0,0,0);
+    static const float inv_dt = 1.0/dt;
+
     for(uint mObj = 0; mObj < m_mechanicalObjects.size (); ++mObj)
     {
         //Object parameters
@@ -112,27 +115,20 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         uint pointCount = x.ref ().size();
 
         //External forces
-        Vec3 zero;zero.set(0,0,0);
-        VecDeriv zerosDeriv(x.ref().size(),zero);
-        Derivatives dFext(zerosDeriv);
+        Derivatives dFext(VecDeriv((int)pointCount,zero));
 
         //We will compute constrainst on p
-        VecCoord freeVecCoord(x.ref());
-        Coordinates freeCoord(freeVecCoord);
+        Coordinates freeCoord(x.ref());
         WriteCoord p = freeCoord;
 
         //Apply external forces on p
-        extForces (&mparams,dFext,p,x,v,dt);
+        m_integrator.integrateExternalForces(gnode,&mparams,dFext,p,x,v,dt);
 
         //Solve all of the constraints
         solveConstraints(mObj,p);
 
         //Integrate using PBD method
-        for(uint i = 0; i < pointCount; ++i)
-        {
-            v[i] = (p[i] - x[i])/dt;
-            x[i] = p[i];
-        }
+        m_integrator.updatePosAndVel (p,x,v,inv_dt);
 
     }
 
@@ -142,33 +138,6 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         PropagateEventVisitor act ( params , &ev );
         gnode->execute ( act );
     }
-
-
-}
-
-
-void PBDAnimationLoop::extForces (const sofa::core::MechanicalParams * mparams,
-                                  Derivatives& f,
-                                  WriteCoord& p,
-                                  const WriteCoord& x,
-                                  WriteDeriv& v,
-                                  SReal dt)
-{
-
-    //Accumulates all external forces (Gravities,interactions etc)
-    for(uint i = 0;  i < gnode->forceField.size(); ++i)
-    {
-        auto ff = dynamic_cast<sofa::core::behavior::ForceField< sofa::defaulttype::Vec3Types > *>(gnode->forceField.get(i));
-        ff->addForce(mparams,f,x.ref(),v.ref());
-    }
-
-    const WriteDeriv& Fext = f;
-    for(uint i = 0; i < v.ref().size(); ++i)
-    {
-        v[i] = v[i] + dt * Fext[i];
-        p[i] = x[i] + dt * v[i];
-    }
-
 }
 
 void PBDAnimationLoop::solveConstraints(const uint mID, WriteCoord& p)
@@ -190,11 +159,11 @@ void PBDAnimationLoop::solveStretch(const uint mID, WriteCoord& p)
     //Use an accumulator to put it as Jacobi
     uint pointCount =  p.ref().size();
     const auto& topology = m_topology[mID];
-    static const SReal k = 0.5;//std::pow(1.f-0.95f,1/20);
+    static const SReal k = 0.3;//std::pow(1.f-0.999f,1/20);
     for( uint i = 0; i < pointCount; ++i)
     {
         const auto& voisins = topology[i];
-       for( const auto& voisin : voisins)
+        for( const auto& voisin : voisins)
         {
             const Vec3& p_ij = p[i] - p[voisin.first];
             SReal l = p_ij.norm();

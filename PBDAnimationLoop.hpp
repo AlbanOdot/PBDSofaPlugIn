@@ -5,6 +5,7 @@
 #include <sofa/simulation/Node.h>
 #include <SofaBaseMechanics/MechanicalObject.h>
 #include <sofa/core/behavior/ForceField.h>
+#include "solver/PBDExplicitIntegrator.hpp"
 
 class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
 {
@@ -62,13 +63,6 @@ public:
 
 private:
 
-    inline void extForces (const sofa::core::MechanicalParams * mparams,
-                    Derivatives& f,
-                    WriteCoord& p,
-                    const WriteCoord& x,
-                    WriteDeriv& v ,
-                    SReal dt);
-
     inline void solveConstraints(const uint mID,
                           WriteCoord& p);
 
@@ -87,6 +81,7 @@ protected :
 
     //Solvers
     //gnode->solver.get(ith)
+    PBDExplicitIntegrator m_integrator;
 
     //Datas and transformations
     //m_topology[mObject][currentVertex][neighbor]

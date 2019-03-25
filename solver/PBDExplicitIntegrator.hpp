@@ -2,16 +2,23 @@
 #define PBDEXPLICITEINTEGRATOR_HPP
 
 #include <sofa/core/objectmodel/BaseObject.h>
-#include <sofa/core/behavior/MultiVec.h>
-#include <sofa/core/behavior/MultiMatrix.h>
 #include <sofa/defaulttype/VecTypes.h>
+#include <sofa/simulation/Node.h>
+#include <SofaBaseMechanics/MechanicalObject.h>
 
 class PBDExplicitIntegrator : public virtual sofa::core::objectmodel::BaseObject
 {
-    typedef sofa::defaulttype::Vec3Types::Coord VecCoord;
-    typedef sofa::defaulttype::Vec3Types::Deriv VecDeriv;
-    typedef sofa::core::objectmodel::Data<VecCoord> Coordinates;
-    typedef sofa::core::objectmodel::Data<VecDeriv> Derivatives;
+    typedef sofa::defaulttype::Vec3Types::Coord       Coord;
+    typedef sofa::helper::vector<Coord>               VecCoord;
+    typedef sofa::core::objectmodel::Data<VecCoord>   Coordinates;
+    typedef sofa::helper::ReadAccessor  <Coordinates> ReadCoord;
+    typedef sofa::helper::WriteAccessor <Coordinates> WriteCoord;
+
+    typedef sofa::defaulttype::Vec3Types::Deriv       Deriv;
+    typedef sofa::helper::vector<Deriv>               VecDeriv;
+    typedef sofa::core::objectmodel::Data<VecDeriv>   Derivatives;
+    typedef sofa::helper::ReadAccessor  <Derivatives> ReadDeriv;
+    typedef sofa::helper::WriteAccessor <Derivatives> WriteDeriv;
 
 public:
     SOFA_CLASS(PBDExplicitIntegrator, sofa::core::objectmodel::BaseObject);
@@ -24,46 +31,23 @@ private:
     PBDExplicitIntegrator& operator=(const PBDExplicitIntegrator& n) ;
 
 public:
-    // Main computation method.
-    // Compute one step :  x = x + dt * dx
-    void integrate(Coordinates& x,
-                   const Derivatives& dx,
-                   const SReal dt);
 
-    //Compute one step in tmpposition :  tmpposition = position + dt * velocity
-    void integrateTmp(Coordinates& tmpposition,
-                      const Coordinates& position,
-                      const Derivatives& velocities,
-                      SReal dt);
 
     //Compute new velocity from external forces : velocity = velocity + dt * Forces_ext
-    void integrateUniformExternalForces(Derivatives& velocities,
-                                        const Derivatives& extForces,
-                                        const SReal dt);
+    void integrateExternalForces(const sofa::simulation::Node * gnode,
+                                 const sofa::core::MechanicalParams * mparams,
+                                 Derivatives& f,
+                                 WriteCoord& p,
+                                 const WriteCoord& x,
+                                 WriteDeriv& v ,
+                                 SReal dt);
 
-    //Call a solver (jk but will soon) to compute the constraints resolution
-    // Solve only for the concerned points given by pointIdx (if void solves for all)
-    void solveDistanceConstraint(Coordinates& position,
-                                 const Coordinates& truth,
-                                 const std::vector<uint>& pointIdx = std::vector<uint>());
+    void updatePosAndVel(const WriteCoord& p,
+                         WriteCoord& x,
+                         WriteDeriv& v,
+                         const SReal& inv_dt);
 
-    //Call a solver (jk but will soon) to compute the constraints resolution
-    //Twice as fast as solving for all with a non empty pointIdx vector
-    void solveDistanceConstraintAll(Coordinates& position,
-                                    const Coordinates& truth,
-                                    const std::vector<uint>& pointIdx);
 
-    //Call a solver (jk but will soon) to compute the constraints resolution
-    //Solve only for the concerned points given by pointIdx (if void solves for all)
-    void solveFixedPointConstraint(Coordinates& position,
-                                   const Coordinates& truth,
-                                   const std::vector<uint>& pointIdx = std::vector<uint>());
-
-    //Use the computed new position to compute set the enw velocity and position
-    void PBDUpdate(const Coordinates& newPosition,
-                   Derivatives& velocity,
-                   Coordinates& position,
-                   const SReal dt);
 protected:
     //GaussSeidelSolver m_solver;
 };
