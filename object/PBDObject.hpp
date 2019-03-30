@@ -33,7 +33,7 @@ public:
     inline WriteCoord position()            {return m_mechanicalObject->writePositions ();}
     inline WriteDeriv velocity()            {return m_mechanicalObject->writeVelocities ();}
     inline const VertexTopology& topology() {return m_topology;}
-    inline const BendingTopology& bend_topology() {return m_bending_topology;}
+    inline  BendingTopology& bend_topology() {return m_bending_topology;}
     inline const std::vector<std::vector<std::pair<float,float>>>& areas() { return m_triangle_rest_area;}
     inline sofa::core::topology::BaseMeshTopology * sofaTopology() { return m_sofa_topology;}
     inline sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * object() {return m_mechanicalObject;}

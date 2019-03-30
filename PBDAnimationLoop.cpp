@@ -93,7 +93,7 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         m_integrator.integrateExternalForces(gnode,&mparams,dFext,p,x,v,dt);
 
         //Solve all of the constraints
-        m_integrator.solveConstraint(object,p,1);
+        m_integrator.solveConstraint(object,p,20);
 
         //Integrate using PBD method
         m_integrator.updatePosAndVel(p,x,v,inv_dt);

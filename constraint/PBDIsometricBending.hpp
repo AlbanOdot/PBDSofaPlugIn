@@ -14,6 +14,8 @@ public:
     virtual Matrix* getConstraintMatrix();
     virtual void solve(PBDObject& object, WriteCoord& p);
 
+     virtual void bwdInit () override;
+
     /// Construction method called by ObjectFactory.
     template<class T>
     static typename T::SPtr create(T*, sofa::core::objectmodel::BaseContext* context, sofa::core::objectmodel::BaseObjectDescription* arg)
@@ -26,7 +28,7 @@ public:
 protected:
     sofa::component::linearsolver::FullMatrix<float> m_constraint;
     sofa::core::objectmodel::Data<SReal> m_k;
-    SReal dt2;
+    SReal coeff;
 };
 
 #endif // PBDSTRECH_HPP
