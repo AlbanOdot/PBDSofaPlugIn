@@ -2,12 +2,18 @@
 
 #include <sofa/core/ObjectFactory.h>
 
-int PBDStretchClass = sofa::core::RegisterObject("Constraint that fixe a point.")
+int PBDStretchClass = sofa::core::RegisterObject("Constraint that correct the streching.")
                             .add< PBDStretch >();
+PBDStretch::PBDStretch(sofa::simulation::Node *gnode)
+    : PBDBaseConstraint(true),
+      m_k(initData(&m_k,(SReal)1.0,"stretch","Stretching factor"))
+{
+
+}
 
 PBDStretch::PBDStretch(unsigned int objectSize)
     : PBDBaseConstraint(true),
-      m_k(initData(&m_k,1.0,"stretch","Stretching factor"))
+      m_k(initData(&m_k,(SReal)1.0,"stretch","Stretching factor"))
 {
 
 }
@@ -20,36 +26,35 @@ sofa::defaulttype::BaseMatrix * PBDStretch::getConstraintMatrix ()
 void PBDStretch::solve(PBDObject &object, WriteCoord &p)
 {
     uint pointCount = p.ref().size();
-    float k = 0.5;//m_k.getValue ();
+    float k = m_k.getValue ();
+    auto correction = [&object,&p,&k](uint i)
+    {
+        const auto& voisins = object.topology()[i];
+
+        for( const auto& voisin : voisins)
+        {
+            const sofa::defaulttype::Vec3& p_ij = p[i] - p[voisin.first];
+            SReal l = p_ij.norm();
+            const auto& displacement = (0.5*k*(l-voisin.second)/l) * p_ij;
+            p[i]            -= displacement;
+            p[voisin.first] += displacement;
+        }
+    };
+
     if(m_indices.getValue().empty())
     {
         for( uint i = 0; i < pointCount; ++i)
         {
-            const auto& voisins = object.topology()[i];
-            for( const auto& voisin : voisins)
-            {
-                const sofa::defaulttype::Vec3& p_ij = p[i] - p[voisin.first];
-                SReal l = p_ij.norm();
-                const auto& displacement = (0.5*k*(l-voisin.second)/l) * p_ij;
-                p[i] -= displacement;
-                p[voisin.first] += displacement;
-            }
+            correction(i);
         }
     }
     else
     {
-        for( const auto& i : m_indices.getValue())
+        const auto& idx = m_indices.getValue ();
+        //#pragma omp parallel for
+        for( uint i = 0; i < idx.size(); ++i)
         {
-            const auto& voisins = object.topology()[i];
-            for( const auto& voisin : voisins)
-            {
-                const sofa::defaulttype::Vec3& p_ij = p[i] - p[voisin.first];
-                SReal l = p_ij.norm();
-                SReal d = voisin.second;
-                const auto& displacement = (0.5*k*(l-d)/l) * p_ij;
-                p[i] -= displacement;
-                p[voisin.first] += displacement;
-            }
+            correction(idx[i]);
         }
     }
 }

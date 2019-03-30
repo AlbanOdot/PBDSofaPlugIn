@@ -77,12 +77,9 @@ protected :
     BaseContext* m_context;
     sofa::simulation::Node* gnode; ///< the node controlled by the loop
 
-    //Objects and Objects's actions
-    std::vector<sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * > m_mechanicalObjects;
-
     //Solvers
     PBDExplicitIntegrator m_integrator;
-    std::vector<PBDBaseConstraint * > m_constraint;
+
     //Datas and transformations
     std::vector<PBDObject> m_objects;
 

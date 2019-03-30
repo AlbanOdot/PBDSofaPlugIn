@@ -25,8 +25,7 @@ int PBDAnimationLoopClass = sofa::core::RegisterObject("Simulation loop to use i
                                             This loop do the following steps:
                                             - build and solve all linear systems in the scene : collision and time integration to compute the new values of the dofs
                                             - update the context (dt++)
-                                            - update the mappings
-                                            - update the bounding box (volume covering all objects of the scene))");
+                                            - update the mappings))");
 
 PBDAnimationLoop::PBDAnimationLoop(sofa::simulation::Node* _gnode)
     : Inherit()
@@ -44,7 +43,6 @@ void PBDAnimationLoop::init()
     if (!gnode)
         gnode = dynamic_cast<sofa::simulation::Node*>(this->getContext());
     m_context = gnode->getContext();
-
 }
 
 void PBDAnimationLoop::bwdInit ()
@@ -52,7 +50,7 @@ void PBDAnimationLoop::bwdInit ()
     //On récupère les topologies
     auto topologies = m_context->getObjects<sofa::core::topology::BaseMeshTopology>(BaseContext::SearchDown);
     auto mechanicalObjects = m_context->getObjects< MechanicalObject< sofa::defaulttype::Vec3Types > >(BaseContext::SearchDown);
-    m_constraint = m_context->getObjects<PBDBaseConstraint>(BaseContext::SearchDown);
+    m_integrator.setUpIntegrator(gnode);
     for(uint i = 0; i < mechanicalObjects.size (); ++i)
     {
         m_objects.emplace_back(PBDObject(mechanicalObjects[i],topologies[i]));
@@ -95,10 +93,10 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         m_integrator.integrateExternalForces(gnode,&mparams,dFext,p,x,v,dt);
 
         //Solve all of the constraints
-        solveConstraints(object,p);
+        m_integrator.solveConstraint(object,p,1);
 
         //Integrate using PBD method
-        m_integrator.updatePosAndVel (p,x,v,inv_dt);
+        m_integrator.updatePosAndVel(p,x,v,inv_dt);
 
     }
 
@@ -110,15 +108,3 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
     }
 }
 
-void PBDAnimationLoop::solveConstraints( PBDObject& object, WriteCoord& p)
-{
-    //From here we solve all of the constraints -> solve on p
-    uint max_iter = 20;
-    for(uint nbIter = 0; nbIter < max_iter; ++nbIter)
-    {
-        for(auto& constraint : m_constraint)
-        {
-            constraint->solve(object,p);
-        }
-    }
-}

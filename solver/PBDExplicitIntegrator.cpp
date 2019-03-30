@@ -53,7 +53,8 @@ void PBDExplicitIntegrator::integrateExternalForces( const sofa::simulation::Nod
     }
 
     const WriteDeriv& Fext = f;
-    for(uint i = 0; i < v.ref().size(); ++i)
+    uint pointCount = v.ref().size();
+    for(uint i = 0; i < pointCount; ++i)
     {
         v[i] = v[i] + dt * Fext[i];
         p[i] = x[i] + dt * v[i];
@@ -67,5 +68,28 @@ void PBDExplicitIntegrator::updatePosAndVel (const WriteCoord &p, WriteCoord &x,
     {
         v[i] = (p[i] - x[i]) * inv_dt;
         x[i] = p[i];
+    }
+}
+
+void PBDExplicitIntegrator::setUpIntegrator(sofa::simulation::Node* node)
+{
+    if(!node)
+        return;
+
+    m_constraint = node->getContext()->getObjects<PBDBaseConstraint>(sofa::core::objectmodel::BaseContext::SearchDown);
+
+}
+
+
+void PBDExplicitIntegrator::solveConstraint (PBDObject& object, WriteCoord& p, uint iter)
+{
+    //From here we solve all of the constraints -> solve on p
+    m_max_iter = iter;
+    for(uint nbIter = 0; nbIter < m_max_iter; ++nbIter)
+    {
+        for(auto& constraint : m_constraint)
+        {
+            constraint->solve(object,p);
+        }
     }
 }

@@ -5,6 +5,8 @@
 #include <sofa/defaulttype/VecTypes.h>
 #include <sofa/simulation/Node.h>
 #include <SofaBaseMechanics/MechanicalObject.h>
+#include "../constraint/PBDBaseConstraint.hpp"
+#include "../object/PBDObject.hpp"
 
 class PBDExplicitIntegrator : public virtual sofa::core::objectmodel::BaseObject
 {
@@ -32,6 +34,7 @@ private:
 
 public:
 
+    void setUpIntegrator(sofa::simulation::Node* node);
 
     //Compute new velocity from external forces : velocity = velocity + dt * Forces_ext
     void integrateExternalForces(const sofa::simulation::Node * gnode,
@@ -47,8 +50,11 @@ public:
                          WriteDeriv& v,
                          const SReal& inv_dt);
 
+    void solveConstraint(PBDObject& object, WriteCoord& p, uint iter);
+
 
 protected:
-    //GaussSeidelSolver m_solver;
+    uint m_max_iter;
+    std::vector<PBDBaseConstraint * > m_constraint;
 };
 #endif //PBDEXPLICITINTEGRATOR_HPP

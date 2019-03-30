@@ -1,16 +1,16 @@
-#ifndef PBDSTRECH_HPP
-#define PBDSTRECH_HPP
+#ifndef PBDISOMETRICBENDING_HPP
+#define PBDISOMETRICBENDING_HPP
 
 #include "PBDBaseConstraint.hpp"
 #include <SofaBaseLinearSolver/FullMatrix.h>
 #include <sofa/core/objectmodel/BaseContext.h>
 #include <sofa/simulation/Node.h>
 
-class PBDStretch : public PBDBaseConstraint
+class PBDIsometricBending : public PBDBaseConstraint
 {
 public:
-    PBDStretch(sofa::simulation::Node* gnode = NULL);
-    PBDStretch(uint objectSize);
+    PBDIsometricBending(sofa::simulation::Node* gnode = NULL);
+    PBDIsometricBending(uint objectSize);
     virtual Matrix* getConstraintMatrix();
     virtual void solve(PBDObject& object, WriteCoord& p);
 
@@ -26,6 +26,7 @@ public:
 protected:
     sofa::component::linearsolver::FullMatrix<float> m_constraint;
     sofa::core::objectmodel::Data<SReal> m_k;
+    SReal dt2;
 };
 
 #endif // PBDSTRECH_HPP
