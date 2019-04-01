@@ -66,7 +66,6 @@ void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
 void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
                             SReal dt)
 {
-
     if (dt == 0)
     {
         dt = gnode->getDt();
