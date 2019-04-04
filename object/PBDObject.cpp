@@ -1,4 +1,6 @@
 #include "PBDObject.hpp"
+#include <Eigen/MatrixFunctions>
+
 PBDObject::PBDObject(sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * mobj,
                      sofa::core::topology::BaseMeshTopology * topo ): m_mechanicalObject(mobj), m_sofa_topology(topo)
 {
@@ -28,17 +30,14 @@ void PBDObject::optimizeTopology()
         //Get the neighbors of point I
         const auto& neighbors = m_sofa_topology->getVerticesAroundVertex (i);
         std::vector<std::pair<uint,SReal>> neighborhood;
-        std::cout << "["<<i<<"] :-> {";
         for(uint j = 0; j < neighbors.size(); ++j)
         {
             if( neighbors[j] < i )//Unidirectionnal neighborhood
             {
-                std::cout << neighbors[j] <<" ";
                 SReal d = (m_rest[0][i] - m_rest[0][neighbors[j]]).norm();
                 neighborhood.emplace_back(std::pair<uint,SReal>(neighbors[j],d));
             }
         }
-        std::cout << "}"<<std::endl;
         m_topology.emplace_back(neighborhood);
     }
 
@@ -81,6 +80,21 @@ void PBDObject::optimizeTopology()
                 m_bending_topology[edge_ID].emplace_back(bs);
             }
         }
+    }
+
+    const auto& tetrahedra = m_sofa_topology->getTetrahedra ();
+    m_tetra_bases.resize (m_sofa_topology->getNbTetrahedra ());
+    for(uint i = 0; i < tetrahedra.size(); ++i)
+    {
+        const auto& x = tetrahedra[i];
+        const auto& r1 = m_rest[0][x[0]] - m_rest[0][x[3]];
+        const auto& r2 = m_rest[0][x[1]] - m_rest[0][x[3]];
+        const auto& r3 = m_rest[0][x[2]] - m_rest[0][x[3]];
+        Eigen::Matrix3d Dm; Dm << r1[0],r1[1],r1[2],
+                                  r2[0],r2[1],r2[2],
+                                  r3[0],r3[1],r3[2];
+        //We take 0.5 since the tetrahedron volume is half the det
+        m_tetra_bases[i] = std::pair<float,Eigen::Matrix3d>(0.5*Dm.determinant(),Dm.inverse());
     }
 }
 

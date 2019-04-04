@@ -21,8 +21,9 @@ class PBDObject
     typedef sofa::helper::ReadAccessor  <Derivatives> ReadDeriv;
     typedef sofa::helper::WriteAccessor <Derivatives> WriteDeriv;
 
-    typedef  std::vector<std::vector<std::pair<uint,SReal>>> VertexTopology;
-    typedef  std::vector<std::vector<bendingStruct>>         BendingTopology;
+    typedef std::vector<std::vector<std::pair<uint,SReal>>> VertexTopology;
+    typedef std::vector<std::vector<bendingStruct>>         BendingTopology;
+    typedef std::vector<std::pair<float,Eigen::Matrix3d>> TetrahedronBasis; //<< Based described by the 4 points of a tetrahedron
 
 
 public:
@@ -37,6 +38,7 @@ public:
     inline const std::vector<std::vector<std::pair<float,float>>>& areas() { return m_triangle_rest_area;}
     inline sofa::core::topology::BaseMeshTopology * sofaTopology() { return m_sofa_topology;}
     inline sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * object() {return m_mechanicalObject;}
+    inline TetrahedronBasis& tetrahedraBases() {return m_tetra_bases;}
 
     inline void setTopology(sofa::core::topology::BaseMeshTopology * topology);
     void optimizeTopology();
@@ -49,6 +51,7 @@ protected:
     sofa::core::topology::BaseMeshTopology * m_sofa_topology; //<<Basic sofa topology usefull for a lot of thing
     VertexTopology m_topology;//<<Topology optimized to apply constraints on vertex
     BendingTopology m_bending_topology;
+    TetrahedronBasis m_tetra_bases;
     std::vector<std::vector<std::pair<float,float>>> m_triangle_rest_area;
     std::vector<ReadCoord> m_rest;
 
