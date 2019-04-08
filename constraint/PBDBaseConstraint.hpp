@@ -37,7 +37,7 @@ public:
 
     inline bool hasOptiSolver() { return m_hasOptimizedSolver;}
 
-    virtual Matrix * getConstraintMatrix() = 0;
+    virtual Matrix * getConstraintMatrix() {return nullptr;}
 
     virtual void solve(PBDObject& object, WriteCoord& p) = 0;
 

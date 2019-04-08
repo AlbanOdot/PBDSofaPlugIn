@@ -1,20 +1,16 @@
 #ifndef PBDISOMETRICBENDING_HPP
 #define PBDISOMETRICBENDING_HPP
 
-#include "PBDBaseConstraint.hpp"
+#include "PBDBending.hpp"
 #include <SofaBaseLinearSolver/FullMatrix.h>
 #include <sofa/core/objectmodel/BaseContext.h>
 #include <sofa/simulation/Node.h>
 
-class PBDIsometricBending : public PBDBaseConstraint
+class PBDIsometricBending : public PBDBending
 {
 public:
-    PBDIsometricBending(sofa::simulation::Node* gnode = NULL);
-    PBDIsometricBending(uint objectSize);
-    virtual Matrix* getConstraintMatrix();
+    PBDIsometricBending(sofa::simulation::Node* gnode = NULL): PBDBending(){}
     virtual void solve(PBDObject& object, WriteCoord& p);
-
-     virtual void bwdInit () override;
 
     /// Construction method called by ObjectFactory.
     template<class T>
@@ -25,10 +21,6 @@ public:
         if (arg) obj->parse(arg);
         return obj;
     }
-protected:
-    sofa::component::linearsolver::FullMatrix<float> m_constraint;
-    sofa::core::objectmodel::Data<SReal> m_k;
-    SReal coeff;
 };
 
 #endif // PBDISOOMETRICBENDING_HPP

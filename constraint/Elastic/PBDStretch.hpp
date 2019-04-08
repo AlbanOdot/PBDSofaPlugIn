@@ -1,19 +1,17 @@
-#ifndef PBDFIXEDPOINT_HPP
-#define PBDFIXEDPOINT_HPP
-#include "PBDBaseConstraint.hpp"
+#ifndef PBDSTRECH_HPP
+#define PBDSTRECH_HPP
+
+#include "PBDElasticConstraint.hpp"
 #include <SofaBaseLinearSolver/FullMatrix.h>
 #include <sofa/core/objectmodel/BaseContext.h>
 #include <sofa/simulation/Node.h>
 
-class PBDFixedPoint : public PBDBaseConstraint
+class PBDStretch : public PBDElasticConstraint
 {
 public:
-
-    PBDFixedPoint(sofa::simulation::Node* gnode = NULL){}
-    PBDFixedPoint(uint objectSize);
-    virtual Matrix* getConstraintMatrix();
-    virtual void solve( PBDObject& object, WriteCoord& p);
-
+    PBDStretch(sofa::simulation::Node* gnode = NULL) : PBDElasticConstraint(){}
+    virtual void solve(PBDObject& object, WriteCoord& p);
+    virtual void bwdInit () override;
     /// Construction method called by ObjectFactory.
     template<class T>
     static typename T::SPtr create(T*, sofa::core::objectmodel::BaseContext* context, sofa::core::objectmodel::BaseObjectDescription* arg)
@@ -23,8 +21,11 @@ public:
         if (arg) obj->parse(arg);
         return obj;
     }
+
 protected:
-    sofa::component::linearsolver::FullMatrix<float> m_constraint;
+    void correction (uint i, const std::pair<uint,double>& voisin, WriteCoord &p);
+protected:
+    double m_K;
 };
 
-#endif // PBDFIXEDPOINT_HPP
+#endif // PBDSTRECH_HPP

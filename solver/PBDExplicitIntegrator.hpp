@@ -54,7 +54,6 @@ public:
 
 
 protected:
-    uint m_max_iter;
     std::vector<PBDBaseConstraint * > m_constraint;
 };
 #endif //PBDEXPLICITINTEGRATOR_HPP
