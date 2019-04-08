@@ -24,7 +24,11 @@ class PBDObject
     typedef std::vector<std::vector<std::pair<uint,SReal>>> VertexTopology;
     typedef std::vector<std::vector<bendingStruct>>         BendingTopology;
     typedef std::vector<std::pair<float,Eigen::Matrix3d>> TetrahedronBasis; //<< Based described by the 4 points of a tetrahedron
-
+private:
+    void computeStretchTopology();
+    void computeBendingTopology();
+    void computeTetrahedraBasis();
+    void computeGhostAndBasis();
 
 public:
     PBDObject(sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * mobj,
@@ -33,7 +37,7 @@ public:
     inline const ReadCoord & rest() const   {return m_rest[0];}
     inline WriteCoord position()            {return m_mechanicalObject->writePositions ();}
     inline WriteDeriv velocity()            {return m_mechanicalObject->writeVelocities ();}
-    inline const VertexTopology& topology() {return m_topology;}
+    inline const VertexTopology& topology() {return m_stretch_topology;}
     inline  BendingTopology& bend_topology() {return m_bending_topology;}
     inline const std::vector<std::vector<std::pair<float,float>>>& areas() { return m_triangle_rest_area;}
     inline sofa::core::topology::BaseMeshTopology * sofaTopology() { return m_sofa_topology;}
@@ -49,11 +53,12 @@ public:
 protected:
     sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * m_mechanicalObject;
     sofa::core::topology::BaseMeshTopology * m_sofa_topology; //<<Basic sofa topology usefull for a lot of thing
-    VertexTopology m_topology;//<<Topology optimized to apply constraints on vertex
+    VertexTopology m_stretch_topology;//<<Topology optimized to apply constraints on vertex
     BendingTopology m_bending_topology;
     TetrahedronBasis m_tetra_bases;
     std::vector<std::vector<std::pair<float,float>>> m_triangle_rest_area;
     std::vector<ReadCoord> m_rest;
+    SReal m_mean_length;
 
 };
 #endif

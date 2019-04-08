@@ -50,7 +50,7 @@ public:
                          WriteDeriv& v,
                          const SReal& inv_dt);
 
-    void solveConstraint(PBDObject& object, WriteCoord& p, uint iter);
+    void solveConstraint(PBDObject& object, WriteCoord& p);
 
 
 protected:

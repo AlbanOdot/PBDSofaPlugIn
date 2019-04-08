@@ -9,6 +9,11 @@
 #include "object/PBDObject.hpp"
 #include "constraint/PBDBaseConstraint.hpp"
 
+#include <sofa/simulation/PropagateEventVisitor.h>
+#include <sofa/simulation/CollisionVisitor.h>
+#include <sofa/simulation/CollisionBeginEvent.h>
+#include <sofa/simulation/CollisionEndEvent.h>
+
 class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
 {
     typedef sofa::defaulttype::Vec3Types::Coord       Coord;

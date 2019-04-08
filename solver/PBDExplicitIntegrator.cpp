@@ -81,15 +81,13 @@ void PBDExplicitIntegrator::setUpIntegrator(sofa::simulation::Node* node)
 }
 
 
-void PBDExplicitIntegrator::solveConstraint (PBDObject& object, WriteCoord& p, uint iter)
+void PBDExplicitIntegrator::solveConstraint (PBDObject& object, WriteCoord& p)
 {
     //From here we solve all of the constraints -> solve on p
-    m_max_iter = iter;
-    for(uint nbIter = 0; nbIter < m_max_iter; ++nbIter)
+
+    for(auto& constraint : m_constraint)
     {
-        for(auto& constraint : m_constraint)
-        {
-            constraint->solve(object,p);
-        }
+        constraint->solve(object,p);
     }
+
 }

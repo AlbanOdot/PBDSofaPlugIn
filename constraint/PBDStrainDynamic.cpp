@@ -1,12 +1,12 @@
-#include "PBDStrainShape.hpp"
+#include "PBDStrainDynamic.hpp"
 
 #include <sofa/core/ObjectFactory.h>
 #include <Eigen/MatrixFunctions>
 
-int PBDStrainShapeClass = sofa::core::RegisterObject("Constraint that correct deformed shape.")
-                          .add< PBDStrainShape >();
+int PBDStrainDynamicClass = sofa::core::RegisterObject("Constraint that correct deformed Dynamic.")
+                            .add< PBDStrainDynamic >();
 
-PBDStrainShape::PBDStrainShape(sofa::simulation::Node *gnode)
+PBDStrainDynamic::PBDStrainDynamic(sofa::simulation::Node *gnode)
     : PBDBaseConstraint(true),
       m_young_modulus(initData(&m_young_modulus,1.7,"young","Young modulus")), //Polypropylene (1.5-2)
       m_poisson_ratio(initData(&m_poisson_ratio,0.45,"poisson","Poisson ratio")) //Polymère (0.3-0.5) -> 0.45 c'ets du plexiglas)
@@ -14,7 +14,7 @@ PBDStrainShape::PBDStrainShape(sofa::simulation::Node *gnode)
 
 }
 
-PBDStrainShape::PBDStrainShape(unsigned int objectSize)
+PBDStrainDynamic::PBDStrainDynamic(unsigned int objectSize)
     : PBDBaseConstraint(true),
       m_young_modulus(initData(&m_young_modulus,1.7,"young","Young modulus")), //Polypropylene (1.5-2)
       m_poisson_ratio(initData(&m_poisson_ratio,0.45,"poisson","Poisson ratio")) //Polymère (0.3-0.5) -> 0.45 c'ets du plexiglas)
@@ -22,16 +22,16 @@ PBDStrainShape::PBDStrainShape(unsigned int objectSize)
 
 }
 
-sofa::defaulttype::BaseMatrix * PBDStrainShape::getConstraintMatrix ()
+sofa::defaulttype::BaseMatrix * PBDStrainDynamic::getConstraintMatrix ()
 {
     return nullptr;
 }
 
-void PBDStrainShape::bwdInit ()
+void PBDStrainDynamic::bwdInit ()
 {
     SReal p = m_poisson_ratio.getValue ();
     SReal E = m_young_modulus.getValue ();
-    // THIS IS NOT THE MATRIX SHOWN IN THE PAPER (PBDStrainShape.hpp)
+    // THIS IS NOT THE MATRIX SHOWN IN THE PAPER (PBDStrainDynamic.hpp)
     // THIS IS SAINT VENANT KIRCHOFF MODEL
 
     SReal lambda = (E*p) / (( 1.0 + p ) * ( 1.0 - 2.0 * p ));
@@ -49,7 +49,7 @@ void PBDStrainShape::bwdInit ()
     //    std::cout << m_C <<std::endl;
 }
 
-void PBDStrainShape::solve(PBDObject &object, WriteCoord &x)
+void PBDStrainDynamic::solve(PBDObject &object, WriteCoord &x)
 {
 
     const auto& Dm_inv = object.tetrahedraBases ();
@@ -71,10 +71,15 @@ void PBDStrainShape::solve(PBDObject &object, WriteCoord &x)
             Ds << r1[0],r1[1],r1[2],
                     r2[0],r2[1],r2[2],
                     r3[0],r3[1],r3[2];
-            const Eigen::Matrix3d& F = (Ds*Dm_inv[i].second).eval();
+            auto F = (Ds*Dm_inv[i].second).eval();
 
             //From F compute Green Strain Tensor { 0.5 (F^t * F - I) }
-            const Eigen::Matrix3d& GST = 0.5 * ( F.transpose() * F - I ); //What happend if F is orthogonal ? :-> if F is orthogonal then Ds is a pure rotation of Dm hence no strain is applied
+            auto T = (F.transpose() * F).eval();
+            Eigen::Matrix3d S;
+            S <<std::sqrt(T(0,0)), T(0,1)           , T(0,2)           ,
+                    T(1,0)           , std::sqrt(T(1,1)), T(1,2)           ,
+                    T(2,0)           , T(2,1)           , std::sqrt(T(2,2));
+            const Eigen::Matrix3d& GST = ( S - I ).eval(); //What happend if F is orthogonal ? :-> if F is orthogonal then Ds is a pure rotation of Dm hence no strain is applied
 
             //compute Piola-Kirchhoff stress tensor
             const Eigen::Matrix3d& P = (F*m_C*GST).eval();

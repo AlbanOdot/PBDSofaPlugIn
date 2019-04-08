@@ -24,78 +24,11 @@ inline void PBDObject::setTopology(sofa::core::topology::BaseMeshTopology *topol
 void PBDObject::optimizeTopology()
 {
 
-    //Compute the vertice oriented topology
-    for(uint i = 0; i < m_rest[0].size(); ++i)
-    {
-        //Get the neighbors of point I
-        const auto& neighbors = m_sofa_topology->getVerticesAroundVertex (i);
-        std::vector<std::pair<uint,SReal>> neighborhood;
-        for(uint j = 0; j < neighbors.size(); ++j)
-        {
-            if( neighbors[j] < i )//Unidirectionnal neighborhood
-            {
-                SReal d = (m_rest[0][i] - m_rest[0][neighbors[j]]).norm();
-                neighborhood.emplace_back(std::pair<uint,SReal>(neighbors[j],d));
-            }
-        }
-        m_topology.emplace_back(neighborhood);
-    }
+    computeStretchTopology ();
+    computeBendingTopology ();
+    computeTetrahedraBasis ();
 
 
-    //Compute the vertice oriented topology
-    const auto& triangles = m_sofa_topology->getTriangles ();
-    m_bending_topology.resize(m_sofa_topology->getNbEdges ());
-    m_triangle_rest_area.resize (m_sofa_topology->getNbEdges ());
-    for(uint i = 0; i < m_rest[0].size(); ++i)
-    {
-        const auto& voisins = m_topology[i];
-
-        const sofa::defaulttype::Vec3 * x[4];
-        x[0] = &(m_rest[0][i]);
-        for( const auto& voisin : voisins)
-        {
-            //BENDING TOPOLOGY
-            uint edge_ID = m_sofa_topology->getEdgeIndex(i,voisin.first);
-            const auto& triangles_ID = m_sofa_topology->getTrianglesAroundEdge(edge_ID);
-            x[1] = &(m_rest[0][voisin.first]);
-            for(uint t = 0; t < triangles_ID.size() - 1; ++t)
-            {
-                bendingStruct bs;
-
-                //Third point of the first triangle
-                const auto& t0 = triangles[triangles_ID[t]];
-                bs.first[0] = t0[0] == i || t0[0] == voisin.first ?
-                             (t0[1] == i || t0[1] == voisin.first ? t0[2]: t0[1] ): t0[0];
-                x[2] = &(m_rest[0][bs.first[0]]);
-
-                //Third point of the second triangle
-                const auto& t1 = triangles[triangles_ID[t+1]];
-                bs.first[1] = t1[0] == i || t1[0] == voisin.first ?
-                             (t1[1] == i || t1[1] == voisin.first ? t1[2]: t1[1] ): t1[0];
-                x[3] = &(m_rest[0][bs.first[1]]);
-
-                std::pair<float,float> area;
-                computeQ(x,bs.second,area);
-                m_triangle_rest_area[edge_ID].emplace_back(area);
-                m_bending_topology[edge_ID].emplace_back(bs);
-            }
-        }
-    }
-
-    const auto& tetrahedra = m_sofa_topology->getTetrahedra ();
-    m_tetra_bases.resize (m_sofa_topology->getNbTetrahedra ());
-    for(uint i = 0; i < tetrahedra.size(); ++i)
-    {
-        const auto& x = tetrahedra[i];
-        const auto& r1 = m_rest[0][x[0]] - m_rest[0][x[3]];
-        const auto& r2 = m_rest[0][x[1]] - m_rest[0][x[3]];
-        const auto& r3 = m_rest[0][x[2]] - m_rest[0][x[3]];
-        Eigen::Matrix3d Dm; Dm << r1[0],r1[1],r1[2],
-                                  r2[0],r2[1],r2[2],
-                                  r3[0],r3[1],r3[2];
-        //We take 0.5 since the tetrahedron volume is half the det
-        m_tetra_bases[i] = std::pair<float,Eigen::Matrix3d>(0.5*Dm.determinant(),Dm.inverse());
-    }
 }
 
 
@@ -147,4 +80,106 @@ void PBDObject::computeQ(const sofa::defaulttype::Vec3 *x[], Eigen::Matrix4d &Q,
     Q(3,0) = Q(0,3)     ; Q(3,1) = Q(1,3)     ; Q(3,2) = Q(2,3)     ; Q(3,3) = K[3] * K[3];
 
     Q *= (3.0/(area.first+area.second));
+}
+
+
+void PBDObject::computeStretchTopology()
+{
+    m_mean_length = 0.0;
+    //Compute the vertice oriented topology
+    for(uint i = 0; i < m_rest[0].size(); ++i)
+    {
+        //Get the neighbors of point I
+        const auto& neighbors = m_sofa_topology->getVerticesAroundVertex (i);
+        std::vector<std::pair<uint,SReal>> neighborhood;
+        for(uint j = 0; j < neighbors.size(); ++j)
+        {
+            if( neighbors[j] < i )//Unidirectionnal neighborhood
+            {
+                SReal d = (m_rest[0][i] - m_rest[0][neighbors[j]]).norm();
+                m_mean_length += d;
+                neighborhood.emplace_back(std::pair<uint,SReal>(neighbors[j],d));
+            }
+        }
+        m_stretch_topology.emplace_back(neighborhood);
+    }
+    m_mean_length /= m_rest[0].size();
+
+}
+void PBDObject::computeBendingTopology()
+{
+    //Compute the vertice oriented topology
+    const auto& triangles = m_sofa_topology->getTriangles ();
+    m_bending_topology.resize(m_sofa_topology->getNbEdges ());
+    m_triangle_rest_area.resize (m_sofa_topology->getNbEdges ());
+    for(uint i = 0; i < m_rest[0].size(); ++i)
+    {
+        const auto& voisins = m_stretch_topology[i];
+
+        const sofa::defaulttype::Vec3 * x[4];
+        x[0] = &(m_rest[0][i]);
+        for( const auto& voisin : voisins)
+        {
+            //BENDING TOPOLOGY
+            uint edge_ID = m_sofa_topology->getEdgeIndex(i,voisin.first);
+            const auto& triangles_ID = m_sofa_topology->getTrianglesAroundEdge(edge_ID);
+            x[1] = &(m_rest[0][voisin.first]);
+            for(uint t = 0; t < triangles_ID.size() - 1; ++t)
+            {
+                bendingStruct bs;
+
+                //Third point of the first triangle
+                const auto& t0 = triangles[triangles_ID[t]];
+                bs.first[0] = t0[0] == i || t0[0] == voisin.first ?
+                             (t0[1] == i || t0[1] == voisin.first ? t0[2]: t0[1] ): t0[0];
+                x[2] = &(m_rest[0][bs.first[0]]);
+
+                //Third point of the second triangle
+                const auto& t1 = triangles[triangles_ID[t+1]];
+                bs.first[1] = t1[0] == i || t1[0] == voisin.first ?
+                             (t1[1] == i || t1[1] == voisin.first ? t1[2]: t1[1] ): t1[0];
+                x[3] = &(m_rest[0][bs.first[1]]);
+
+                std::pair<float,float> area;
+                computeQ(x,bs.second,area);
+                m_triangle_rest_area[edge_ID].emplace_back(area);
+                m_bending_topology[edge_ID].emplace_back(bs);
+            }
+        }
+    }
+}
+
+void PBDObject::computeTetrahedraBasis()
+{
+    const auto& tetrahedra = m_sofa_topology->getTetrahedra ();
+    m_tetra_bases.resize (m_sofa_topology->getNbTetrahedra ());
+    for(uint i = 0; i < tetrahedra.size(); ++i)
+    {
+        const auto& x = tetrahedra[i];
+        const auto& r1 = m_rest[0][x[0]] - m_rest[0][x[3]];
+        const auto& r2 = m_rest[0][x[1]] - m_rest[0][x[3]];
+        const auto& r3 = m_rest[0][x[2]] - m_rest[0][x[3]];
+        Eigen::Matrix3d Dm; Dm << r1[0],r1[1],r1[2],
+                                  r2[0],r2[1],r2[2],
+                                  r3[0],r3[1],r3[2];
+        //We take 0.5 since the tetrahedron volume is half the det
+        m_tetra_bases[i] = std::pair<float,Eigen::Matrix3d>(0.5*Dm.determinant(),Dm.inverse());
+    }
+}
+
+void PBDObject::computeGhostAndBasis ()
+{
+    const auto& edges = m_sofa_topology->getEdges ();
+    //m_ghost_topology.resize(m_sofa_topology->getNbEdges ());
+    for(uint i = 0; i < m_rest[0].size(); ++i)
+    {
+        const auto& voisins = m_stretch_topology[i];
+
+        const sofa::defaulttype::Vec3 * x[4];
+        x[0] = &(m_rest[0][i]);
+        for( const auto& voisin : voisins)
+        {
+
+        }
+    }
 }

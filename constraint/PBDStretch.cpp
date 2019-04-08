@@ -3,7 +3,7 @@
 #include <sofa/core/ObjectFactory.h>
 
 int PBDStretchClass = sofa::core::RegisterObject("Constraint that correct the streching.")
-                            .add< PBDStretch >();
+                      .add< PBDStretch >();
 PBDStretch::PBDStretch(sofa::simulation::Node *gnode)
     : PBDBaseConstraint(true),
       m_k(initData(&m_k,(SReal)1.0,"stretch","Stretching factor"))
@@ -43,9 +43,12 @@ void PBDStretch::solve(PBDObject &object, WriteCoord &p)
 
     if(m_indices.getValue().empty())
     {
-        for( uint i = 0; i < pointCount; ++i)
+        for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
         {
-            correction(i);
+            for( uint i = 0; i < pointCount; ++i)
+            {
+                correction(i);
+            }
         }
     }
     else

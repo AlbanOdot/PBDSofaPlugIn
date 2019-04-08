@@ -70,6 +70,7 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
     {
         dt = gnode->getDt();
     }
+
     sofa::core::MechanicalParams mparams(*params);
     static const Vec3 zero(0,0,0);
     static const float inv_dt = 1.0/dt;
@@ -92,13 +93,28 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         m_integrator.integrateExternalForces(gnode,&mparams,dFext,p,x,v,dt);
 
         //Solve all of the constraints
-        m_integrator.solveConstraint(object,p,20);
+        m_integrator.solveConstraint(object,p);
 
         //Integrate using PBD method
         m_integrator.updatePosAndVel(p,x,v,inv_dt);
 
     }
 
+//    {
+//        CollisionBeginEvent evBegin;
+//        PropagateEventVisitor eventPropagation( params, &evBegin);
+//        eventPropagation.execute(getContext());
+//    }
+
+//    CollisionVisitor act(params);
+//    act.setTags(this->getTags());
+//    act.execute( getContext() );
+
+//    {
+//        CollisionEndEvent evEnd;
+//        PropagateEventVisitor eventPropagation( params, &evEnd);
+//        eventPropagation.execute(getContext());
+//    }
     gnode->execute<UpdateMappingVisitor>(params);
     {
         UpdateMappingEndEvent ev ( dt );

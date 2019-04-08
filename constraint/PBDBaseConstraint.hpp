@@ -28,6 +28,7 @@ public:
 protected:
     PBDBaseConstraint(bool optisolv = false)
         : m_indices(initData(&m_indices, sofa::helper::vector<uint>(), "indices", "ID of the vertices on wich this constraint is to apply")),
+          m_nbIter(initData(&m_nbIter,(uint)1,"iter","Number of iteration for the solver")),
           m_hasOptimizedSolver(optisolv){}
 
     virtual ~PBDBaseConstraint() { }
@@ -43,6 +44,7 @@ public:
 public:
     bool m_hasOptimizedSolver;
     IndexSet m_indices; ///< Indices on wich to apply the constraint
+    sofa::core::objectmodel::Data<unsigned int> m_nbIter;
 
 };
 #endif
