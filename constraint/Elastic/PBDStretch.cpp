@@ -7,6 +7,7 @@ int PBDStretchClass = sofa::core::RegisterObject("Constraint that correct the st
 void PBDStretch::bwdInit ()
 {
     m_K = 1.0-std::pow(1.0-m_k.getValue (),1.0 / ((double)m_nbIter.getValue ()));
+    std::cout << m_K << std::endl;
 }
 
 void PBDStretch::solve(PBDObject &object, WriteCoord &p)

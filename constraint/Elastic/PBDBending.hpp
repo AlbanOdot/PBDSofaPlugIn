@@ -9,7 +9,9 @@
 class PBDBending : public PBDElasticConstraint
 {
 public:
-    PBDBending(sofa::simulation::Node* gnode = NULL) : PBDElasticConstraint(){}
+    PBDBending(sofa::simulation::Node* gnode = NULL) : PBDElasticConstraint(),
+    alpha_wann(initData(&alpha_wann,(SReal)1e-2,"a1","Low frequency ondulation")),
+    alpha_too(initData(&alpha_too,(SReal)4e-4,"a2","High frequency ondulation")){}
     virtual void solve(PBDObject& object, WriteCoord& p);
     virtual void bwdInit () override;
     /// Construction method called by ObjectFactory.
@@ -23,9 +25,12 @@ public:
     }
 
 protected:
-    void correction(PBDObject &object, uint a, uint b, WriteCoord& x);
+    void correction(PBDObject &object, uint a, uint b, WriteCoord& x, const ReadCoord& vel);
 protected:
+    sofa::core::objectmodel::Data<SReal> alpha_wann;
+    sofa::core::objectmodel::Data<SReal> alpha_too;
     SReal coeff;
+    SReal m_K;
 };
 
 #endif // PBDBENDING_HPP
