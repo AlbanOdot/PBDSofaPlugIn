@@ -41,6 +41,8 @@ public:
 
     virtual void solve(PBDObject& object, WriteCoord& p) = 0;
 
+    void setIterCount(int c) { m_nbIter.setValue (c);}
+
 public:
     bool m_hasOptimizedSolver;
     IndexSet m_indices; ///< Indices on wich to apply the constraint

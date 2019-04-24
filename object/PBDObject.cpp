@@ -1,5 +1,7 @@
 #include "PBDObject.hpp"
 #include <Eigen/MatrixFunctions>
+#include <sofa/core/objectmodel/BaseContext.h>
+#include <SofaBaseMechanics/UniformMass.h>
 
 PBDObject::PBDObject(sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * mobj,
                      sofa::core::topology::BaseMeshTopology * topo ): m_mechanicalObject(mobj), m_sofa_topology(topo)
@@ -7,7 +9,8 @@ PBDObject::PBDObject(sofa::component::container::MechanicalObject< sofa::default
     if(m_mechanicalObject && m_sofa_topology)
     {
         m_rest.emplace_back(m_mechanicalObject->readRestPositions ());
-        optimizeTopology ();
+        m_mass = static_cast<sofa::component::mass::UniformMass<sofa::defaulttype::Vec3Types,SReal> *>(m_mechanicalObject->getContext ()->getMass())->getVertexMass ();
+        m_invVertexMass = 1.0/m_mass;
     }
 }
 
@@ -17,18 +20,18 @@ inline void PBDObject::setTopology(sofa::core::topology::BaseMeshTopology *topol
     if(m_mechanicalObject && m_sofa_topology)
     {
         m_rest.emplace_back(m_mechanicalObject->readRestPositions ());
-        optimizeTopology ();
+        m_mass = static_cast<sofa::component::mass::UniformMass<sofa::defaulttype::Vec3Types,SReal> *>(m_mechanicalObject->getContext ()->getMass())->getVertexMass ();
+        m_invVertexMass = 1.0/m_mass;
+
     }
+
 }
 
 void PBDObject::optimizeTopology()
 {
-
     computeStretchTopology ();
     computeBendingTopology ();
     computeTetrahedraBasis ();
-
-
 }
 
 
@@ -85,7 +88,6 @@ void PBDObject::computeQ(const sofa::defaulttype::Vec3 *x[], Eigen::Matrix4d &Q,
 
 void PBDObject::computeStretchTopology()
 {
-    m_mean_length = 0.0;
     //Compute the vertice oriented topology
     for(uint i = 0; i < m_rest[0].size(); ++i)
     {
@@ -97,13 +99,11 @@ void PBDObject::computeStretchTopology()
             if( neighbors[j] < i )//Unidirectionnal neighborhood
             {
                 SReal d = (m_rest[0][i] - m_rest[0][neighbors[j]]).norm();
-                m_mean_length += d;
                 neighborhood.emplace_back(std::pair<uint,SReal>(neighbors[j],d));
             }
         }
         m_stretch_topology.emplace_back(neighborhood);
     }
-    m_mean_length /= m_rest[0].size();
 
 }
 void PBDObject::computeBendingTopology()
@@ -167,19 +167,24 @@ void PBDObject::computeTetrahedraBasis()
     }
 }
 
-void PBDObject::computeGhostAndBasis ()
+void PBDObject::computeBeam()
 {
+    //Compute the vertice oriented topology
     const auto& edges = m_sofa_topology->getEdges ();
-    //m_ghost_topology.resize(m_sofa_topology->getNbEdges ());
-    for(uint i = 0; i < m_rest[0].size(); ++i)
+    for(uint e = 0; e < edges.size() - 1; ++e)
     {
-        const auto& voisins = m_stretch_topology[i];
+        const auto& edge = edges[e];
+        const auto& edge2 = edges[e+1];
+        uint pt[3] = {edge[0],edge[1],edge2[1]};
+        auto be = BeamElement(m_mechanicalObject,pt);
+        if( e == 0 )
+            m_beam.emplace_back(BeamElement(be,false));
+        m_beam.emplace_back(be);
 
-        const sofa::defaulttype::Vec3 * x[4];
-        x[0] = &(m_rest[0][i]);
-        for( const auto& voisin : voisins)
-        {
-
-        }
     }
+    //Special constructor for the last one because the mean length of the 2 edges can't be computed
+    uint pt[2] = {edges[edges.size() -1 ][0],edges[edges.size() -1 ][1]};
+    m_beam.emplace_back(BeamElement(pt,m_mechanicalObject));
+    //ADD a ghost beam element to make it work
+    m_beam.emplace_back(BeamElement(m_beam[m_beam.size ()-1],true));
 }

@@ -71,12 +71,20 @@ void PBDExplicitIntegrator::updatePosAndVel (const WriteCoord &p, WriteCoord &x,
     }
 }
 
-void PBDExplicitIntegrator::setUpIntegrator(sofa::simulation::Node* node)
+void PBDExplicitIntegrator::setUpIntegrator(sofa::simulation::Node* node, int nbIter)
 {
     if(!node)
         return;
 
     m_constraint = node->getContext()->getObjects<PBDBaseConstraint>(sofa::core::objectmodel::BaseContext::SearchDown);
+
+    m_nbIter = nbIter;
+    if(nbIter != 1){
+        for(auto& constraint : m_constraint)
+        {
+            constraint->setIterCount(1);
+        }
+    }
 
 }
 
@@ -85,9 +93,12 @@ void PBDExplicitIntegrator::solveConstraint (PBDObject& object, WriteCoord& p)
 {
     //From here we solve all of the constraints -> solve on p
 
-    for(auto& constraint : m_constraint)
+    for(int iter = 0 ; iter < m_nbIter; ++iter)
     {
-        constraint->solve(object,p);
+        for(auto& constraint : m_constraint)
+        {
+            constraint->solve(object,p);
+        }
     }
 
 }

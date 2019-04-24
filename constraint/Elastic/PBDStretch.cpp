@@ -12,6 +12,9 @@ void PBDStretch::bwdInit ()
 
 void PBDStretch::solve(PBDObject &object, WriteCoord &p)
 {
+    if(object.topology ().empty ())
+        object.computeStretchTopology ();
+
     uint pointCount = p.ref().size();
     if(m_indices.getValue().empty())
     {

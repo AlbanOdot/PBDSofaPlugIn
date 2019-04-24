@@ -15,6 +15,11 @@ void PBDBending::bwdInit ()
 void PBDBending::solve(PBDObject &object, WriteCoord &x)
 {
 
+    if(object.topology ().empty () || object.bend_topology ().empty ())
+    {
+        object.computeStretchTopology ();
+        object.computeBendingTopology ();
+    }
     uint pointCount = x.ref().size();
     const auto& vel = object.object()->readVelocities ();
     if(m_indices.getValue().empty())
@@ -49,7 +54,7 @@ void PBDBending::solve(PBDObject &object, WriteCoord &x)
 }
 
 
-void PBDBending::correction (PBDObject &object, uint a, uint b, WriteCoord &x, const ReadCoord& vel)
+void PBDBending::correction (PBDObject &object, uint a, uint b, WriteCoord &x, const ReadDeriv& vel)
 {
     uint edge_ID = object.sofaTopology ()->getEdgeIndex(a,b);
     const auto& hessian_and_idx = object.bend_topology ()[edge_ID];

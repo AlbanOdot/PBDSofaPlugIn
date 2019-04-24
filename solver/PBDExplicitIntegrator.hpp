@@ -34,7 +34,7 @@ private:
 
 public:
 
-    void setUpIntegrator(sofa::simulation::Node* node);
+    void setUpIntegrator(sofa::simulation::Node* node,int nbIter);
 
     //Compute new velocity from external forces : velocity = velocity + dt * Forces_ext
     void integrateExternalForces(const sofa::simulation::Node * gnode,
@@ -55,5 +55,6 @@ public:
 
 protected:
     std::vector<PBDBaseConstraint * > m_constraint;
+    int m_nbIter;
 };
 #endif //PBDEXPLICITINTEGRATOR_HPP

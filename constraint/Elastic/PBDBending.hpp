@@ -25,7 +25,7 @@ public:
     }
 
 protected:
-    void correction(PBDObject &object, uint a, uint b, WriteCoord& x, const ReadCoord& vel);
+    void correction(PBDObject &object, uint a, uint b, WriteCoord& x, const ReadDeriv& vel);
 protected:
     sofa::core::objectmodel::Data<SReal> alpha_wann;
     sofa::core::objectmodel::Data<SReal> alpha_too;

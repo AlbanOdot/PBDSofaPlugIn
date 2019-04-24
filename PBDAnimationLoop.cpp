@@ -28,8 +28,9 @@ int PBDAnimationLoopClass = sofa::core::RegisterObject("Simulation loop to use i
                                             - update the mappings))");
 
 PBDAnimationLoop::PBDAnimationLoop(sofa::simulation::Node* _gnode)
-    : Inherit()
-    , gnode(_gnode)
+    : Inherit(),
+      gnode(_gnode),
+      m_nbIter(initData(&m_nbIter,(int)1,"iter","Number of iteration for the solver"))
 {
 }
 
@@ -50,7 +51,7 @@ void PBDAnimationLoop::bwdInit ()
     //On récupère les topologies
     auto topologies = m_context->getObjects<sofa::core::topology::BaseMeshTopology>(BaseContext::SearchDown);
     auto mechanicalObjects = m_context->getObjects< MechanicalObject< sofa::defaulttype::Vec3Types > >(BaseContext::SearchDown);
-    m_integrator.setUpIntegrator(gnode);
+    m_integrator.setUpIntegrator(gnode,m_nbIter.getValue ());
     for(uint i = 0; i < mechanicalObjects.size (); ++i)
     {
         m_objects.emplace_back(PBDObject(mechanicalObjects[i],topologies[i]));

@@ -88,5 +88,7 @@ protected :
     //Datas and transformations
     std::vector<PBDObject> m_objects;
 
+    sofa::core::objectmodel::Data<int> m_nbIter;
+
 };
 #endif //PBDANIMATIONLOOP_HPP
