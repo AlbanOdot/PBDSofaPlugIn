@@ -18,7 +18,7 @@ void PBDStrainDynamic::bwdInit ()
     SReal lambda = (E*p) / (( 1.0 + p ) * ( 1.0 - 2.0 * p ));
     SReal mu = E / (2.0 * ( 1.0 + p ));
     //C(i,i) defines x/y/z stretching while K[3] define the intensity of the shear motion
-    m_C(0,0) = lambda + 2 * mu  ; m_C(0,1) = lambda         ; m_C(0,2) = lambda         ;
+    m_C(0,0) = lambda + 2.0 * mu  ; m_C(0,1) = lambda         ; m_C(0,2) = lambda         ;
     m_C(1,0) = lambda           ; m_C(1,1) = lambda + 2 * mu; m_C(1,2) = lambda         ;
     m_C(2,0) = lambda           ; m_C(2,1) = lambda         ; m_C(2,2) = lambda + 2 * mu;
 

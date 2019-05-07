@@ -16,7 +16,7 @@ class PBDStrainShape : public PBDFEMConstraint
 {
 public:
     PBDStrainShape(sofa::simulation::Node* gnode = NULL):PBDFEMConstraint(){}
-    virtual void solve(PBDObject& object, WriteCoord& p);
+    virtual void solve(PBDObject& object, WriteCoord& p) override;
     virtual void bwdInit () override;
 
     /// Construction method called by ObjectFactory.

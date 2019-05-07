@@ -39,7 +39,6 @@ void PBDBeam::solve(PBDObject &object, WriteCoord &p)
     static const SReal eps = 1e-6;
     const SReal invMass1 = object.invMass ();
     const SReal invMass0 = invMass1;
-    uint  fixedIdx = 0;
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
         for(uint e = 0; e < beam.size (); ++e )
@@ -59,8 +58,7 @@ void PBDBeam::solve(PBDObject &object, WriteCoord &p)
 
             //                               Cs                               *  q * e_3.conjugate (cheaper than quaternion product)
             Quaternion dq0 = Quaternion(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternion(u[e].z(), -u[e].y(), u[e].x(), -u[e].w());
-            dq0.coeffs () *= static_cast<SReal>(2.0) * beam[e].wq() * beam[e].length();
-            u[e].coeffs() += dq0.coeffs ();
+            u[e].coeffs() += (static_cast<SReal>(2.0) * beam[e].wq() * beam[e].length()) * dq0.coeffs ();
 
             // COMPUTE BENDING AND TWISTING
             Quaternion omega = u[e].conjugate() * u[e+1];   //darboux vector
@@ -87,11 +85,3 @@ void PBDBeam::solve(PBDObject &object, WriteCoord &p)
 
 }
 
-inline void PBDBeam::solveCosserat(PBDObject& object, WriteCoord& p, uint e)
-{
-    auto& beam = object.beam();
-    auto& u = object.freeOrientation ();
-
-
-
-}

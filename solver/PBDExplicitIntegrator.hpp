@@ -34,7 +34,8 @@ private:
 
 public:
 
-    void setUpIntegrator(sofa::simulation::Node* node,int nbIter);
+    void setUpIntegrator(sofa::simulation::Node* node,
+                         int nbIter);
 
     //Compute new velocity from external forces : velocity = velocity + dt * Forces_ext
     void integrateExternalForces(const sofa::simulation::Node * gnode,
@@ -45,13 +46,19 @@ public:
                                  WriteDeriv& v ,
                                  SReal dt);
 
-    void updatePosAndVel(const WriteCoord& p,
+    //Integrate object using torque
+    void integrateAngularVelocity(PBDObject& object,const SReal &dt);
+
+    //Update position and velocity from newly computed position
+    void updatePosAndVel(PBDObject& object,
+                         const WriteCoord& p,
                          WriteCoord& x,
                          WriteDeriv& v,
                          const SReal& inv_dt);
 
-    void solveConstraint(PBDObject& object, WriteCoord& p);
-
+    //Main loop : loop over every constraints nbIter times
+    void solveConstraint(PBDObject& object,
+                         WriteCoord& p);
 
 protected:
     std::vector<PBDBaseConstraint * > m_constraint;

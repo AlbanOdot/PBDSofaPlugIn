@@ -17,7 +17,7 @@ public:
       //    m_stretchingAndShearingKs(initData(&m_stretchingAndShearingKs,vec3()))
       //    sofa::core::objectmodel::Data<vec3> m_bendingAndTwistingKs;
     {}
-    virtual void solve(PBDObject& object, WriteCoord& p);
+    virtual void solve(PBDObject& object, WriteCoord& p) override;
     virtual void bwdInit () override;
 
     /// Construction method called by ObjectFactory.
@@ -30,12 +30,13 @@ public:
         return obj;
     }
 private:
-    void computeDisplacement( Eigen::Matrix<SReal, 6, 1> &C, BeamElement& be, BeamElement& be2, Eigen::Matrix<SReal,6,1>& dx);
     vec3 m_e3;
     vec3 m_stretchingAndShearingKs;
     vec3 m_bendingAndTwistingKs;
+    SReal m_maxDisplacement;
     sofa::core::objectmodel::Data<SReal> m_radius;
     sofa::core::objectmodel::Data<SReal> m_Massq;
+
 
 };
 

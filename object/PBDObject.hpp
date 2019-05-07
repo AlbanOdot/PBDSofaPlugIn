@@ -8,6 +8,7 @@
 //                 x0,x1         Q
 typedef std::pair<uint[2],Eigen::Matrix4d> bendingStruct;
 
+
 class PBDObject
 {
     typedef sofa::defaulttype::Vec3Types::Coord       Coord;
@@ -28,23 +29,26 @@ class PBDObject
     typedef std::vector<BeamElement> Beam;
 private:
 
-
 public:
     PBDObject(sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * mobj,
               sofa::core::topology::BaseMeshTopology * topo = nullptr);
 
-    inline const SReal& invMass() const { return m_invVertexMass;}
-    inline const SReal& mass() const { return m_mass;}
-    inline const ReadCoord & rest() const   {return m_rest[0];}
-    inline WriteCoord position()            {return m_mechanicalObject->writePositions ();}
-    inline WriteDeriv velocity()            {return m_mechanicalObject->writeVelocities ();}
-    inline const VertexTopology& topology() {return m_stretch_topology;}
-    inline  BendingTopology& bend_topology() {return m_bending_topology;}
-    inline const std::vector<std::vector<std::pair<float,float>>>& areas() { return m_triangle_rest_area;}
-    inline sofa::core::topology::BaseMeshTopology * sofaTopology() { return m_sofa_topology;}
-    inline sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * object() {return m_mechanicalObject;}
-    inline TetrahedronBasis& tetrahedraBases() {return m_tetra_bases;}
-    inline Beam& beam() {return m_beam;}
+    inline const SReal& invMass() const                                                             { return m_invVertexMass;}
+    inline const SReal& mass() const                                                                { return m_mass;}
+    inline const ReadCoord & rest() const                                                           {return m_rest[0];}
+    inline WriteCoord position()                                                                    {return m_mechanicalObject->writePositions ();}
+    inline WriteDeriv velocity()                                                                    {return m_mechanicalObject->writeVelocities ();}
+    inline const VertexTopology& topology()                                                         {return m_stretch_topology;}
+    inline  BendingTopology& bend_topology()                                                        {return m_bending_topology;}
+    inline const std::vector<std::vector<std::pair<float,float>>>& areas()                          { return m_triangle_rest_area;}
+    inline sofa::core::topology::BaseMeshTopology * sofaTopology()                                  { return m_sofa_topology;}
+    inline sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * object()  {return m_mechanicalObject;}
+    inline TetrahedronBasis& tetrahedraBases()                                                      {return m_tetra_bases;}
+    inline Beam& beam()                                                                             {return m_beam;}
+    inline std::vector<Eigen::Quaterniond>& freeOrientation()                                         {return m_freeOrientation;}
+    inline std::vector<Eigen::Vector3d>& angularSpeed()                                             {return m_angularSpeed;}
+    inline std::vector<Eigen::Vector3d>& torque()                                                   {return m_torque;}
+    inline std::vector<Eigen::Matrix3d>& inertia()                                                  {return m_intertia;}
 
     inline void setTopology(sofa::core::topology::BaseMeshTopology * topology);
     void optimizeTopology();
@@ -53,6 +57,11 @@ public:
     void computeTetrahedraBasis();
     void computeBeam();
     void computeQ(const sofa::defaulttype::Vec3 *x[4],Eigen::Matrix4d& Q, std::pair<float,float>& area);
+    void computeStiffRod();
+    void setupAngularVelocity();
+    void applyFixedPoint(const std::vector<uint>& idx);
+
+
 
 
 protected:
@@ -63,9 +72,14 @@ protected:
     TetrahedronBasis m_tetra_bases;
     std::vector<std::vector<std::pair<float,float>>> m_triangle_rest_area;
     std::vector<ReadCoord> m_rest;
+
+    std::vector<Eigen::Quaterniond> m_freeOrientation;
+    std::vector<Eigen::Vector3d> m_angularSpeed;
+    std::vector<Eigen::Vector3d> m_torque;
+    std::vector<Eigen::Matrix3d> m_intertia;
     Beam m_beam;
+
     SReal m_invVertexMass;
     SReal m_mass;
-
 };
 #endif

@@ -74,7 +74,7 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
 
     sofa::core::MechanicalParams mparams(*params);
     static const Vec3 zero(0,0,0);
-    static const float inv_dt = 1.0/dt;
+    const float inv_dt = 1.0/dt;
 
     for(auto& object : m_objects)
     {
@@ -93,11 +93,17 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         //Apply external forces on p
         m_integrator.integrateExternalForces(gnode,&mparams,dFext,p,x,v,dt);
 
+        //Apply torque and angular velocity
+        m_integrator.integrateAngularVelocity(object,dt);
+        /*
+         * Generate Collision here
+         */
+
         //Solve all of the constraints
         m_integrator.solveConstraint(object,p);
 
         //Integrate using PBD method
-        m_integrator.updatePosAndVel(p,x,v,inv_dt);
+        m_integrator.updatePosAndVel(object,p,x,v,inv_dt);
 
     }
 

@@ -61,13 +61,30 @@ void PBDExplicitIntegrator::integrateExternalForces( const sofa::simulation::Nod
     }
 }
 
-void PBDExplicitIntegrator::updatePosAndVel (const WriteCoord &p, WriteCoord &x, WriteDeriv &v, const SReal &inv_dt)
+void PBDExplicitIntegrator::updatePosAndVel (PBDObject& object,
+                                             const WriteCoord &p,
+                                             WriteCoord &x,
+                                             WriteDeriv &v,
+                                             const SReal &inv_dt)
 {
-    uint pointCount = v.ref().size();
+
+    auto pointCount = v.ref().size();
     for(uint i = 0; i < pointCount; ++i)
     {
         v[i] = (p[i] - x[i]) * inv_dt;
         x[i] = p[i];
+    }
+
+    auto orientationCount = object.freeOrientation ().size ();
+    auto& omega = object.angularSpeed ();
+    auto& u = object.freeOrientation ();
+    auto& beam = object.beam ();
+    Eigen::Quaterniond n;
+    for(uint i = 0; i < orientationCount; ++i)
+    {
+        n.coeffs () = 2.0*inv_dt*(beam[i].q().conjugate()*u[i]).coeffs ();
+        omega[i] = Eigen::Vector3d(n.x(),n.y (),n.z ());
+        beam[i].q() = u[i];
     }
 }
 
@@ -101,4 +118,21 @@ void PBDExplicitIntegrator::solveConstraint (PBDObject& object, WriteCoord& p)
         }
     }
 
+}
+
+void PBDExplicitIntegrator::integrateAngularVelocity(PBDObject& object,const SReal &dt)
+{
+    if(object.beam ().empty ())
+        return;
+    auto& omega = object.angularSpeed ();
+    auto& I = object.inertia ();
+    auto& tau = object.torque ();
+    auto& u = object.freeOrientation ();
+    auto& beam = object.beam ();
+    for(uint j = 0; j < omega.size (); ++j)
+    {
+        omega[j] += dt*I[j].inverse ()*(tau[j] - omega[j].cross(I[j]*omega[j])).eval ();
+        u[j].coeffs() += (0.5-1e-3)*dt*(beam[j].m_q*Eigen::Quaterniond(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
+        u[j].normalize ();
+    }
 }

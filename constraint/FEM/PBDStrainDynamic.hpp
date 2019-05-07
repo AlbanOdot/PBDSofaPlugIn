@@ -16,7 +16,7 @@ class PBDStrainDynamic : public PBDFEMConstraint
 {
 public:
     PBDStrainDynamic(sofa::simulation::Node* gnode = NULL):PBDFEMConstraint(){}
-    virtual void solve(PBDObject& object, WriteCoord& p);
+    virtual void solve(PBDObject& object, WriteCoord& p) override;
     virtual void bwdInit () override;
 
     /// Construction method called by ObjectFactory.

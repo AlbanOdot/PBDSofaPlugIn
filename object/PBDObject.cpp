@@ -171,20 +171,53 @@ void PBDObject::computeBeam()
 {
     //Compute the vertice oriented topology
     const auto& edges = m_sofa_topology->getEdges ();
+    std::vector<SReal> averageLength;
+    const auto& rest = m_mechanicalObject->readRestPositions ();
+    for(uint e = 0; e < edges.size(); ++e)
+    {
+        uint edge[2] = {edges[e][0],edges[e][1]};
+        uint a = e+1 == edges.size () ? e : e+1;
+        uint edgeN[2] = {edges[a][0],edges[a][1]};
+        SReal l = 0.5* ( (rest[edge[0]] - rest[edge[1]]).norm () + (rest[edgeN[0]] - rest[edgeN[1]]).norm ());
+        m_beam.emplace_back(BeamElement(m_mechanicalObject,edge,e,l));
+    }
+    //Post init of darboux vectors
     for(uint e = 0; e < edges.size() - 1; ++e)
     {
-        const auto& edge = edges[e];
-        const auto& edge2 = edges[e+1];
-        uint pt[3] = {edge[0],edge[1],edge2[1]};
-        auto be = BeamElement(m_mechanicalObject,pt);
-        if( e == 0 )
-            m_beam.emplace_back(BeamElement(be,false));
-        m_beam.emplace_back(be);
-
+        m_beam[e].initRestDarboux(m_beam[e+1].m_q);
     }
-    //Special constructor for the last one because the mean length of the 2 edges can't be computed
-    uint pt[2] = {edges[edges.size() -1 ][0],edges[edges.size() -1 ][1]};
-    m_beam.emplace_back(BeamElement(pt,m_mechanicalObject));
-    //ADD a ghost beam element to make it work
-    m_beam.emplace_back(BeamElement(m_beam[m_beam.size ()-1],true));
+    m_beam[m_beam.size() - 1].initRestDarboux (m_beam[m_beam.size() - 1].q ());
+    m_beam.emplace_back(m_beam[m_beam.size() - 1]);
+    auto& last = m_beam[m_beam.size() - 1];
+    last.m_segmentIndicies.first = last.m_segmentIndicies.second;
+    setupAngularVelocity ();
+}
+
+void PBDObject::computeStiffRod()
+{
+}
+
+void PBDObject::setupAngularVelocity()
+{
+    const Eigen::Matrix3d id; id.Identity ();
+    for(uint i = 0; i< m_beam.size (); ++i)
+    {
+        m_angularSpeed.emplace_back(Eigen::Vector3d(0,0,0));
+        m_torque.emplace_back(Eigen::Vector3d(0,0,0));
+        m_freeOrientation.emplace_back(m_beam[i].q());
+        m_intertia.emplace_back(id);
+    }
+    for(uint i = 0; i< m_beam.size (); ++i)
+    {
+        m_intertia[i].setIdentity ();
+    }
+}
+
+
+void PBDObject::applyFixedPoint(const std::vector<uint>& idx)
+{
+    for(auto& a : idx)
+    {
+        m_beam[a].setwq(0.0);
+    }
 }

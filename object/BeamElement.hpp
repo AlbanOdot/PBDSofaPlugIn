@@ -19,27 +19,35 @@ public:
     typedef Eigen::Matrix<double,6,6> Mat6;
     typedef Eigen::Matrix<double,6,1> Vec6;
 
-    BeamElement(const uint edge[2], const sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * mobj);
-    BeamElement(const sofa::defaulttype::Vec3& x1,  const sofa::defaulttype::Vec3& x2);
-    BeamElement(const sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * mobj, const uint edge[3]);
-    BeamElement(BeamElement& b, bool ghost);
+    BeamElement(sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > *mobj,
+                const uint edge[2],
+                const uint e,
+                const SReal l);
+    void initMassMatrix(SReal m, vec3 stiffness);
+    void initRestDarboux(const Quaternion& q);
 
-    inline SReal length() const { return m_length;}
-    inline SReal invLength() const{return m_inv_length;}
-    inline uint current() const { return m_orig_idx;}
-    inline uint next() const { return m_end_idx;}
+    inline SReal length() const { return m_averageLength;}
+    inline uint extremity(uint i) const { return i == 0 ? m_segmentIndicies.first : m_segmentIndicies.second;}
     inline Quaternion& q() { return m_q;}
     inline Quaternion& restDarboux() {return m_restDarboux;}
+    inline Vec6& l() {return m_lambda;}
+    inline Mat6& invMass() {return m_invMass;}
+    inline unsigned int edge() {return m_segmentIndex;}
+    inline SReal wq() {return m_wq;}
+    void setwq(SReal w) {m_wq = w;}
 
     Quaternion m_q;//<<Quaternion describing the orientation of the segment
+    Quaternion m_restDarboux;
+    std::pair<unsigned int,unsigned int> m_segmentIndicies;
+    unsigned int m_segmentIndex;
+    SReal m_averageLength;
+    Mat6 m_invMass;
+    Vec6 m_lambda;
+    SReal m_wq;
 
 private:
     //Const variables
-    Quaternion m_restDarboux;
-    uint m_orig_idx;
-    uint m_end_idx;
-    SReal m_length;
-    SReal m_inv_length;
+
 };
 
 #endif // BEAMELEMENT_HPP
