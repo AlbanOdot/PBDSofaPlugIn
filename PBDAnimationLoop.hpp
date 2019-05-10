@@ -5,9 +5,9 @@
 #include <sofa/simulation/Node.h>
 #include <SofaBaseMechanics/MechanicalObject.h>
 #include <sofa/core/behavior/ForceField.h>
-#include "solver/PBDExplicitIntegrator.hpp"
-#include "object/PBDObject.hpp"
-#include "constraint/PBDBaseConstraint.hpp"
+#include "Solver/PBDExplicitIntegrator.hpp"
+#include "Object/PBDObject.hpp"
+#include "Constraint/PBDBaseConstraint.hpp"
 
 #include <sofa/simulation/PropagateEventVisitor.h>
 #include <sofa/simulation/CollisionVisitor.h>
