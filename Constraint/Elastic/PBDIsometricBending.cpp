@@ -1,7 +1,6 @@
 #include "PBDIsometricBending.hpp"
 
 #include <sofa/core/ObjectFactory.h>
-#include <Eigen/MatrixFunctions>
 
 int PBDIsometricBendingClass = sofa::core::RegisterObject("Constraint that correct the bending.")
                                .add< PBDIsometricBending >();
@@ -9,9 +8,10 @@ int PBDIsometricBendingClass = sofa::core::RegisterObject("Constraint that corre
 void PBDIsometricBending::solve(PBDObject &object, WriteCoord &x)
 {
 
-    if(object.topology ().empty () || object.bendTopology ().empty ())
+    if( !object.hasDataType(PBDObject::BENDING) || !object.hasDataType (PBDObject::STRETCH) )
     {
-        object.computeStretchTopology ();
+        if( !object.hasDataType(PBDObject::STRETCH) )
+            object.computeStretchTopology ();
         object.computeBendingTopology ();
     }
     uint pointCount = x.ref().size();
@@ -23,13 +23,13 @@ void PBDIsometricBending::solve(PBDObject &object, WriteCoord &x)
             for( uint a = 0; a < pointCount; ++a)
             {
                 //Get the edge of the corresponding neighbors
-                for( const auto& voisin : object.topology()[a])
+                for( const auto& voisin : object.topology().data ()[a])
                 {
 
                     //Enforce the isometric property
                     const sofa::defaulttype::Vec3& x_ij = x[a] - x[voisin.first];
                     SReal l = x_ij.norm();
-                    const auto& dx = (0.5*m_K*(l-voisin.second)/l) * x_ij;
+                    const auto& dx = (0.5*(l-voisin.second)/l) * x_ij;
                     x[a]            -= dx;
                     x[voisin.first] += dx;
                     correction (object,a,voisin.first,x,vel);//PBDBending
@@ -45,7 +45,7 @@ void PBDIsometricBending::solve(PBDObject &object, WriteCoord &x)
             for( uint a : idx)
             {
                 //Get the edge of the corresponding neighbors
-                for( const auto& voisin : object.topology()[a])
+                for( const auto& voisin : object.topology().data ()[a])
                 {
 
                     //Enforce the isometric property
@@ -54,7 +54,6 @@ void PBDIsometricBending::solve(PBDObject &object, WriteCoord &x)
                     const auto& displacement = (0.5*(l-voisin.second)/l) * x_ij;
                     x[a]            -= displacement;
                     x[voisin.first] += displacement;
-
                     correction (object,a,voisin.first,x,vel);//PBDBending
                 }
             }

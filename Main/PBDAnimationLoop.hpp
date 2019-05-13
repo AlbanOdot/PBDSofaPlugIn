@@ -5,9 +5,9 @@
 #include <sofa/simulation/Node.h>
 #include <SofaBaseMechanics/MechanicalObject.h>
 #include <sofa/core/behavior/ForceField.h>
-#include "Solver/PBDExplicitIntegrator.hpp"
-#include "Object/PBDObject.hpp"
-#include "Constraint/PBDBaseConstraint.hpp"
+#include "../Solver/PBDExplicitIntegrator.hpp"
+#include "../Object/PBDObject.hpp"
+#include "../Constraint/PBDBaseConstraint.hpp"
 
 #include <sofa/simulation/PropagateEventVisitor.h>
 #include <sofa/simulation/CollisionVisitor.h>
@@ -67,15 +67,6 @@ public:
         return obj;
     }
 
-private:
-
-    inline void solveConstraints(PBDObject& object,
-                                 WriteCoord& p);
-
-    inline void solveStretch(const uint mID,
-                             WriteCoord& p);
-
-    inline void solveFixedPoint(const uint mID, WriteCoord& p);
 protected :
 
     //Context and scene hierachy

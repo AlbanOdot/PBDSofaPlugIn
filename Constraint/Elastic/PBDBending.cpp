@@ -14,9 +14,9 @@ void PBDBending::bwdInit ()
 
 void PBDBending::solve(PBDObject &object, WriteCoord &x)
 {
-    if( !(object.dataType()&BENDING) || !(object.dataType ()&STRETCH) )
+    if( !object.hasDataType (PBDObject::BENDING) || !object.hasDataType (PBDObject::STRETCH) )
     {
-        if( !(object.dataType ()&STRETCH) )
+        if( !object.hasDataType (PBDObject::STRETCH) )
             object.computeStretchTopology ();
         object.computeBendingTopology ();
     }
@@ -29,7 +29,7 @@ void PBDBending::solve(PBDObject &object, WriteCoord &x)
             for( uint a = 0; a < pointCount; ++a)
             {
                 //Get the edge of the corresponding neighbors
-                for( const auto& voisin : object.topology()[a])
+                for( const auto& voisin : object.topology().data ()[a])
                 {
                     correction(object,a,voisin.first,x,vel);
                 }
@@ -44,7 +44,7 @@ void PBDBending::solve(PBDObject &object, WriteCoord &x)
             for( const auto& a : idx)
             {
                 //Get the edge of the corresponding neighbors
-                for( const auto& voisin : object.topology()[a])
+                for( const auto& voisin : object.topology().data ()[a])
                 {
                     correction(object,a,voisin.first,x,vel);
                 }
@@ -57,7 +57,7 @@ void PBDBending::solve(PBDObject &object, WriteCoord &x)
 void PBDBending::correction (PBDObject &object, uint a, uint b, WriteCoord &x, const ReadDeriv& vel)
 {
     uint edge_ID = object.sofaTopology ()->getEdgeIndex(a,b);
-    const auto& hessian_and_idx = object.bendTopology ()[edge_ID];
+    const auto& hessian_and_idx = object.bendTopology ().bendingData ()[edge_ID];
     //TODO change this to take into account mass distribution
     const SReal a1 = -alpha_wann.getValue ();
     const SReal a2 = -alpha_too.getValue ();

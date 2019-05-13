@@ -1,5 +1,5 @@
-#ifndef PBDTriangleAreaTOPOLOGY_HPP
-#define PBDTriangleAreaTOPOLOGY_HPP
+#ifndef PBDTRIANGLEAREATOPOLOGY_HPP
+#define PBDTRIANGLEAREATOPOLOGY_HPP
 
 #include "../PBDBaseConstraintData.hpp"
 typedef std::vector<std::vector<std::pair<float,float>>> TriangleAreaData;

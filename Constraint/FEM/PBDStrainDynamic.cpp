@@ -29,12 +29,12 @@ void PBDStrainDynamic::bwdInit ()
 void PBDStrainDynamic::solve(PBDObject &object, WriteCoord &x)
 {
 
-    if(object.tetrahedraBases ().empty ())
+    if(!object.hasDataType(PBDObject::TETRAHEDRON))
     {
         object.computeTetrahedraBasis ();
     }
 
-    const auto& Dm_inv = object.tetrahedraBases ();
+    const auto& Dm_inv = object.tetrahedraBases ().data ();
     const uint tetCount = object.sofaTopology ()->getNbTetrahedra ();
     static Eigen::Matrix3d I;
     I << 1.,0.,0.,

@@ -1,9 +1,9 @@
-#ifndef PBDBEAM_HPP
-#define PBDBEAM_HPP
+#ifndef PBDELASTICROD_HPP
+#define PBDELASTICROD_HPP
 
 #include "PBDFEMConstraint.hpp"
 
-class PBDBeam : public PBDFEMConstraint
+class PBDElasticRod : public PBDFEMConstraint
 {
     typedef sofa::defaulttype::Vec3 vec3;
     typedef Eigen::Quaternion<SReal> Quaternion;
@@ -11,7 +11,7 @@ class PBDBeam : public PBDFEMConstraint
     typedef Eigen::Matrix<double,6,1> Vec6;
 
 public:
-    PBDBeam() : PBDFEMConstraint(),
+    PBDElasticRod() : PBDFEMConstraint(),
         m_radius(initData(&m_radius,0.1,"radius","Diameter of the rod")),
         m_Massq(initData(&m_Massq,1.0,"Qmass","Inertia tensor reduced to a mass"))
     {}
@@ -36,4 +36,4 @@ private:
 
 };
 
-#endif // PBDBEAM_HPP
+#endif // PBDElasticRod_HPP

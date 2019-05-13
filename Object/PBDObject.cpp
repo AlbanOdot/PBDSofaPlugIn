@@ -25,84 +25,58 @@ inline void PBDObject::setTopology(sofa::core::topology::BaseMeshTopology *topol
     m_dataType = 0;
 }
 
-void PBDObject::optimizeTopology()
-{
-    computeStretchTopology ();
-    computeBendingTopology ();
-    computeTetrahedraBasis ();
-}
-
 
 void PBDObject::computeStretchTopology()
 {
     m_stretch_topology  = VertexTopology(m_mechanicalObject,m_sofa_topology);
     m_dataType |= STRETCH;
+    m_integration_type |= NORMAL;
 }
 
 void PBDObject::computeBendingTopology()
 {
     m_bending_topology = PBDBendingTopology(m_mechanicalObject,m_sofa_topology);
     m_dataType |= BENDING;
+    m_integration_type |= NORMAL;
 }
 
 void PBDObject::computeTetrahedraBasis()
 {
     m_tetra_bases = PBDTetrahedronBasis(m_mechanicalObject,m_sofa_topology);
     m_dataType |= TETRAHEDRON;
+    m_integration_type |= NORMAL;
 }
 
-void PBDObject::computeBeam()
+void PBDObject::computeOrientation()
 {
-    //Compute the vertice oriented topology
-    const auto& edges = m_sofa_topology->getEdges ();
-    const auto& rest = m_mechanicalObject->readRestPositions ();
-    for(uint e = 0; e < edges.size(); ++e)
-    {
-        uint edge[2] = {edges[e][0],edges[e][1]};
-        uint a = e+1 == edges.size () ? e : e+1;
-        uint edgeN[2] = {edges[a][0],edges[a][1]};
-        SReal l = 0.5* ( (rest[edge[0]] - rest[edge[1]]).norm () + (rest[edgeN[0]] - rest[edgeN[1]]).norm ());
-        m_beam.emplace_back(BeamElement(m_mechanicalObject,edge,e,l));
-    }
-    //Post init of darboux vectors
-    for(uint e = 0; e < edges.size() - 1; ++e)
-    {
-        m_beam[e].initRestDarboux(m_beam[e+1].m_q);
-    }
-    m_beam[m_beam.size() - 1].initRestDarboux (m_beam[m_beam.size() - 1].q ());
-    m_beam.emplace_back(m_beam[m_beam.size() - 1]);
-    auto& last = m_beam[m_beam.size() - 1];
-    last.m_segmentIndicies.first = last.m_segmentIndicies.second;
-    setupAngularVelocity ();
-    m_dataType |= BEAM;
+    m_orientation = PBDOrientation(m_mechanicalObject,m_sofa_topology);
     m_dataType |= ORIENTED;
+    m_integration_type |= NORMAL;
+}
+void PBDObject::computeElasticRod()
+{
+    m_elasticRod = PBDElasticRodData(m_mechanicalObject,m_sofa_topology);
+    m_dataType |= ELASTICROD;
+    m_integration_type |= ANGULAR;
+
 }
 
 void PBDObject::computeStiffRod()
 {
+    m_stiffRod = PBDStiffRodData(m_mechanicalObject,m_sofa_topology);
+    m_dataType |= STIFFROD;
+    m_integration_type |= NORMAL;
 }
 
-void PBDObject::setupAngularVelocity()
+void PBDObject::setupAngularVelocity(const std::vector<Vector3r>& as)
 {
-    const Eigen::Matrix3d id; id.Identity ();
-    for(uint i = 0; i< m_beam.size (); ++i)
-    {
-        m_angularSpeed.emplace_back(Eigen::Vector3d(0,0,0));
-        m_torque.emplace_back(Eigen::Vector3d(0,0,0));
-        m_freeOrientation.emplace_back(m_beam[i].q());
-        m_intertia.emplace_back(id);
-    }
-    for(uint i = 0; i< m_beam.size (); ++i)
-    {
-        m_intertia[i].setIdentity ();
-    }
+    if(m_dataType & ORIENTED)
+        m_orientation.setAngularVelocity(as);
 }
 
 
 void PBDObject::applyFixedPoint(const std::vector<uint>& idx)
 {
-    for(auto& a : idx)
-    {
-        m_beam[a].setwq(0.0);
-    }
+    if(m_dataType & ELASTICROD)
+        m_elasticRod.setToZero (idx);
 }

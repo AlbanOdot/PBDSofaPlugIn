@@ -2,7 +2,6 @@
 #define PBDTETRAHEDRONBASIS_HPP
 
 #include "../PBDBaseConstraintData.hpp"
-#include "../Elastic/PBDTriangleAreaTopology.hpp"
 
 typedef std::vector<std::pair<float,Eigen::Matrix3d>> TetrahedronBasisData;
 

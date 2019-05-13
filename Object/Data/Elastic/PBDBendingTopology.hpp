@@ -1,5 +1,5 @@
-#ifndef PBDBendingTOPOLOGY_HPP
-#define PBDBendingTOPOLOGY_HPP
+#ifndef PBDBENDINGTOPOLOGY_HPP
+#define PBDBENDINGTOPOLOGY_HPP
 
 #include "../PBDBaseConstraintData.hpp"
 #include "PBDTriangleAreaTopology.hpp"

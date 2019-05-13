@@ -12,7 +12,7 @@ void PBDStretch::bwdInit ()
 void PBDStretch::solve(PBDObject &object, WriteCoord &p)
 {
 
-    if(!(object.dataType ()& STRETCH))
+    if(!object.hasDataType(PBDObject::STRETCH))
         object.computeStretchTopology ();
 
     uint pointCount = p.ref().size();
@@ -22,9 +22,7 @@ void PBDStretch::solve(PBDObject &object, WriteCoord &p)
         {
             for( uint i = 0; i < pointCount; ++i)
             {
-                const auto& voisins = object.topology()[i];
-
-                for( const auto& voisin : voisins)
+                for( const auto& voisin : object.topology().data ()[i])
                 {
                     correction(i,voisin,p);
                 }
@@ -37,9 +35,7 @@ void PBDStretch::solve(PBDObject &object, WriteCoord &p)
         //#pragma omp parallel for
         for( uint i = 0; i < idx.size(); ++i)
         {
-            const auto& voisins = object.topology()[i];
-
-            for( const auto& voisin : voisins)
+            for( const auto& voisin : object.topology().data ()[i])
             {
                 correction(i,voisin,p);
             }
