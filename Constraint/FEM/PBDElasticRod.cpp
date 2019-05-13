@@ -3,7 +3,7 @@
 #include <Eigen/MatrixFunctions>
 #include <sofa/helper/Quater.h>
 
-int PBDElasticRodClass = sofa::core::RegisterObject("Constraint that correct beam.")
+int PBDElasticRodClass = sofa::core::RegisterObject("Constraint that correct elastic rod.")
                    .add< PBDElasticRod >();
 
 typedef sofa::defaulttype::Vec3 V3;
@@ -35,48 +35,49 @@ void PBDElasticRod::solve(PBDObject &object, WriteCoord &p)
         object.computeElasticRod();
         object.applyFixedPoint(m_indices.getValue ());
     }
-//    auto& beam = object.beam();
-//    auto& u    = object.freeOrientation ();
-//    static const SReal eps = 1e-6;
-//    for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
-//    {
-//        for(uint e = 0; e < beam.size (); ++e )
-//        {
-//            const SReal invMass1 = object.invMass(beam[e].extremity(0));
-//            const SReal invMass0 = object.invMass(beam[e].extremity(1));
+    auto& eRod = object.elasticRod ();
+    auto& u    = object.orientation ().freeOrientation ();
+    static const SReal eps = 1e-6;
+    for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
+    {
+        for(uint e = 0; e < eRod.wq().size (); ++e )
+        {
+            uint a = eRod.beginIdx (e);
+            uint z = eRod.endIdx(e);
+            const SReal invMass1 = object.invMass(a);
+            const SReal invMass0 = object.invMass(z);
 
-//            //  COMPUTE STRETCHING AND SHEARING
-//            vec3 d3;
-//            d3[0] = static_cast<SReal>(2.0) * (u[e].x() * u[e].z() + u[e].w() * u[e].y());
-//            d3[1] = static_cast<SReal>(2.0) * (u[e].y() * u[e].z() - u[e].w() * u[e].x());
-//            d3[2] = u[e].w() * u[e].w() - u[e].x() * u[e].x() - u[e].y() * u[e].y() + u[e].z() * u[e].z();	//third director d3 = q0 * e_3 * q0_conjugate
+            //  COMPUTE STRETCHING AND SHEARING
+            vec3 d3;
+            d3[0] = static_cast<SReal>(2.0) * (u[a].x() * u[a].z() + u[a].w() * u[a].y());
+            d3[1] = static_cast<SReal>(2.0) * (u[a].y() * u[a].z() - u[a].w() * u[a].x());
+            d3[2] = u[a].w() * u[a].w() - u[a].x() * u[a].x() - u[a].y() * u[a].y() + u[a].z() * u[a].z();	//third director d3 = q0 * e_3 * q0_conjugate
 
-//            vec3 gamma = (p[beam[e].extremity(1)] - p[beam[e].extremity(0)]) / beam[e].length () - d3;
-//            gamma     /= (invMass1 + invMass0) / beam[e].length ()+ beam[e].wq() * static_cast<SReal>(4.0)*beam[e].length() + eps;
+            vec3 gamma = (p[z] - p[a]) / eRod.length(e) - d3;
+            gamma     /= (invMass1 + invMass0) / eRod.length(e)+ eRod.wq(e) * static_cast<SReal>(4.0)*eRod.length(e) + eps;
+            p[a] += invMass0 * gamma;
+            p[z] -= invMass1 * gamma;
 
-//            p[beam[e].extremity(0)] += invMass0 * gamma;
-//            p[beam[e].extremity(1)] -= invMass1 * gamma;
+            //                               Cs                               *  q * e_3.conjugate (cheaper than quaternion product)
+            Quaternion dq0 = Quaternion(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternion(u[a].z(), -u[a].y(), u[a].x(), -u[a].w());
+            u[a].coeffs() += (static_cast<SReal>(2.0) * eRod.wq(e) * eRod.length(e)) * dq0.coeffs ();
 
-//            //                               Cs                               *  q * e_3.conjugate (cheaper than quaternion product)
-//            Quaternion dq0 = Quaternion(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternion(u[e].z(), -u[e].y(), u[e].x(), -u[e].w());
-//            u[e].coeffs() += (static_cast<SReal>(2.0) * beam[e].wq() * beam[e].length()) * dq0.coeffs ();
+            // COMPUTE BENDING AND TWISTING
+            Quaternion omega    = u[a].conjugate() * u[z];   //darboux vector
+            Quaternion omega_plus;
+            omega_plus.coeffs() = omega.coeffs() + object.orientation().restDarboux(a).coeffs(); //delta Omega with -Omega_0
+            omega.coeffs()      = omega.coeffs() - object.orientation().restDarboux(a).coeffs(); //delta Omega with + omega_0
 
-//            // COMPUTE BENDING AND TWISTING
-//            Quaternion omega    = u[e].conjugate() * u[e+1];   //darboux vector
-//            Quaternion omega_plus;
-//            omega_plus.coeffs() = omega.coeffs() + beam[e].restDarboux ().coeffs(); //delta Omega with -Omega_0
-//            omega.coeffs()      = omega.coeffs() - beam[e].restDarboux ().coeffs(); //delta Omega with + omega_0
+            if (omega.squaredNorm() > omega_plus.squaredNorm())
+                omega = omega_plus;
 
-//            if (omega.squaredNorm() > omega_plus.squaredNorm())
-//                omega = omega_plus;
-
-//            for (uint i = 0; i < 3; i++)
-//                omega.coeffs()[i] *= m_bendingAndTwistingKs[i] / (beam[e].wq() + beam[e+1].wq() + eps);
-//            omega.w() = 0.0;    //discrete Darboux vector does not have vanishing scalar part
-//            u[e  ].coeffs() +=  beam[e  ].wq() * (u[e+1] * omega).coeffs ();
-//            u[e+1].coeffs() -=  beam[e+1].wq() * (u[e  ] * omega).coeffs ();
-//        }
-//        u[beam.size()-1] = u[beam.size()-2];
-//    }
+            for (uint i = 0; i < 3; i++)
+                omega.coeffs()[i] *= m_bendingAndTwistingKs[i] / (eRod.wq(e) + eRod.wq(e+1) + eps);
+            omega.w() = 0.0;    //discrete Darboux vector does not have vanishing scalar part
+            u[a].coeffs() +=  eRod.wq(e) * (u[z] * omega).coeffs ();
+            u[z].coeffs() -=  eRod.wq(e+1) * (u[a] * omega).coeffs ();
+        }
+        u[u.size ()-1] = u[u.size()-2];
+    }
 }
 

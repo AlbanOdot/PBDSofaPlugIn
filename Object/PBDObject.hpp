@@ -42,6 +42,7 @@ public:
     inline       unsigned long int dataType()                                                               const   {return m_dataType;}
     inline       unsigned long int integrationType()                                                        const   {return m_integration_type;}
     inline       bool hasDataType(PBDDataType t)                                                            const   {return m_dataType & t;}
+    inline       bool integrate(PBDIntegrationType t)                                                       const   {return m_integration_type & t;}
 
     //PBDDatatype setters
     inline       void setTopology(sofa::core::topology::BaseMeshTopology * topology);
@@ -66,7 +67,8 @@ public:
      inline       sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * object()            {return m_mechanicalObject;}
      inline       TetrahedronBasis& tetrahedraBases()                                                                {return m_tetra_bases;}
      inline       PBDOrientation& orientation()                                                                      {return m_orientation;}
-
+     inline       ElasticRodData& elasticRod()                                                                       {return m_elasticRod;}
+     inline       StiffRodData& stiffRod()                                                                           {return m_stiffRod;}
 protected:
 
     //General

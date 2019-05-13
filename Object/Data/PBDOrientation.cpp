@@ -10,11 +10,11 @@ void PBDOrientation::init()
 {
     const auto& rest = m_mechanicalObject->readRestPositions ();
     const Eigen::Matrix3d id;
-    for(uint i = 0; i < rest.size (); ++i)
+    for(uint i = 0; i < rest.size () - 1; ++i)
     {
-        uint a = i+1 == rest.size () ? i : i+1;
-        const auto& dir = rest[a] - rest[a];
-        Quaternionr q;q.setFromTwoVectors(Vector3r(0,0,1),Vector3r(dir[0],dir[1],dir[2]));
+        const auto& dir = rest[i+1] - rest[i];
+        Quaternionr q;
+        q.setFromTwoVectors(Vector3r(0,0,1),Vector3r(dir[0],dir[1],dir[2]));
         q.normalize ();
         m_orientation.emplace_back(q);
         m_freeOrientation.emplace_back(q);
@@ -22,11 +22,18 @@ void PBDOrientation::init()
         m_torque.emplace_back(Eigen::Vector3d(0,0,0));
         m_inertia.emplace_back(id.Identity());
     }
-    for(uint i = 0; i < rest.size(); ++i)
+    //Last particle is set as the previous one.
+    m_orientation.emplace_back(m_orientation[m_orientation.size () - 1]);
+    m_freeOrientation.emplace_back(m_freeOrientation[m_freeOrientation.size () - 1]);
+    m_angularSpeed.emplace_back(Eigen::Vector3d(0,0,0));
+    m_torque.emplace_back(Eigen::Vector3d(0,0,0));
+    m_inertia.emplace_back(id.Identity());
+
+    for(uint i = 0; i < rest.size() - 1; ++i)
     {
-        uint a = i+1 == rest.size () ? i : i+1;
-        m_restDarboux.emplace_back(m_orientation[a].conjugate () * m_orientation[i]);
+        m_restDarboux.emplace_back(m_orientation[i+1].conjugate () * m_orientation[i]);
     }
+    m_restDarboux.emplace_back(m_restDarboux[m_restDarboux.size() - 1] );
 }
 
 void PBDOrientation::update()

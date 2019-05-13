@@ -74,20 +74,19 @@ void PBDExplicitIntegrator::updatePosAndVel (PBDObject& object,
         v[i] = (p[i] - x[i]) * inv_dt;
         x[i] = p[i];
     }
-    if(object.integrationType () & PBDObject::ANGULAR)
+    if(object.integrate (PBDObject::ANGULAR))
     {
-//        auto& orientation = object.orientation ();
-//        auto orientationCount = orientation.freeOrientation ().size ();
-//        auto& omega = orientation.angularSpeed ();
-//        auto& u = orientation.freeOrientation ();
-//        auto& beam = object.beam ();
-//        Eigen::Quaterniond n;
-//        for(uint i = 0; i < orientationCount; ++i)
-//        {
-//            n.coeffs () = 2.0*inv_dt*(beam[i].q().conjugate()*u[i]).coeffs ();
-//            omega[i] = Eigen::Vector3d(n.x(),n.y (),n.z ());
-//            beam[i].q() = u[i];
-//        }
+        auto& orientation = object.orientation ();
+        auto orientationCount = orientation.freeOrientation ().size ();
+        auto& omega = orientation.angularSpeed ();
+        auto& u = orientation.freeOrientation ();
+        Eigen::Quaterniond n;
+        for(uint i = 0; i < orientationCount; ++i)
+        {
+            n.coeffs () = 2.0*inv_dt*(orientation.orientation (i).conjugate()*u[i]).coeffs ();
+            omega[i] = Eigen::Vector3d(n.x(),n.y (),n.z ());
+            orientation.orientation (i) = u[i];
+        }
     }
 }
 
@@ -125,19 +124,18 @@ void PBDExplicitIntegrator::solveConstraint (PBDObject& object, WriteCoord& p)
 
 void PBDExplicitIntegrator::integrateAngularVelocity(PBDObject& object,const SReal &dt)
 {
-    if(!(object.integrationType () & PBDObject::ANGULAR))
+    if(object.integrate (PBDObject::ANGULAR))
     {
         auto& orientation = object.orientation ();
         auto& omega = orientation.angularSpeed ();
         auto& I = orientation.inertia ();
         auto& tau = orientation.torque ();
         auto& u = orientation.freeOrientation ();
-//        auto& beam = object.beam ();
-//        for(uint j = 0; j < omega.size (); ++j)
-//        {
-//            omega[j] += dt*I[j].inverse ()*(tau[j] - omega[j].cross(I[j]*omega[j])).eval ();
-//            u[j].coeffs() += (0.5-1e-3)*dt*(beam[j].m_q*Eigen::Quaterniond(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
-//            u[j].normalize ();
-//        }
+        for(uint j = 0; j < omega.size (); ++j)
+        {
+            omega[j] += dt*I[j].inverse ()*(tau[j] - omega[j].cross(I[j]*omega[j])).eval ();
+            u[j].coeffs() += (0.5-1e-3)*dt*(orientation.orientation (j)*Eigen::Quaterniond(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
+            u[j].normalize ();
+        }
     }
 }
