@@ -1,17 +1,19 @@
-#ifndef PBDELASTICROD_HPP
-#define PBDELASTICROD_HPP
+#ifndef PBDSTIFFROD_HPP
+#define PBDSTIFFROD_HPP
 
-#include "PBDFEMConstraint.hpp"
+#include "./PBDFEMConstraint.hpp"
 
-class PBDElasticRod : public PBDFEMConstraint
+class PBDStiffRod : public PBDFEMConstraint
 {
     typedef sofa::defaulttype::Vec3 vec3;
+    typedef Eigen::Matrix<SReal,6,1> Vec6;
 public:
-    PBDElasticRod() : PBDFEMConstraint(),
+    PBDStiffRod() : PBDFEMConstraint(),
         m_radius(initData(&m_radius,0.1,"radius","Diameter of the rod"))
     {}
     virtual void solve(PBDObject& object, WriteCoord& p) override;
     virtual void bwdInit () override;
+            void initObject(PBDObject& object);
 
     /// Construction method called by ObjectFactory.
     template<class T>
@@ -28,6 +30,4 @@ private:
     sofa::core::objectmodel::Data<SReal> m_radius;
 };
 
-
-
-#endif // PBDElasticRod_HPP
+#endif

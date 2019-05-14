@@ -73,10 +73,3 @@ void PBDObject::setupAngularVelocity(const std::vector<Vector3r>& as)
     if(m_dataType & ORIENTED)
         m_orientation.setAngularVelocity(as);
 }
-
-
-void PBDObject::applyFixedPoint(const std::vector<uint>& idx)
-{
-    if(m_dataType & ELASTICROD)
-        m_elasticRod.setToZero (idx);
-}

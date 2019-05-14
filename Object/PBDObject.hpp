@@ -54,7 +54,6 @@ public:
                  void computeQ(const sofa::defaulttype::Vec3 *x[4],Eigen::Matrix4d& Q, std::pair<float,float>& area);
                  void computeStiffRod();
                  void setupAngularVelocity(const std::vector<Vector3r>&);
-                 void applyFixedPoint(const std::vector<uint>& idx);
 
      //PBDDatatype accessors
      inline       VertexMassData& mass()                                                                             {return m_mass.m();}

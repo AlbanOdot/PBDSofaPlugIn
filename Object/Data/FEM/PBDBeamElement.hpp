@@ -10,10 +10,11 @@ public:
     virtual void init() override;
     virtual void update() override;
 
-    inline  uint    beginIdx(uint segment)      {return m_indicies[segment].info[0];}
-    inline  uint    endIdx(uint segment)        {return m_indicies[segment].info[1];}
-    inline  uint    segmentIdx(uint segment)    {return m_indicies[segment].info[2];}
-    inline  SReal   length(uint segment)        {return m_averageLength[segment];}
+    inline  uint               beginIdx(uint segment)       {return m_indicies[segment].info[0];}
+    inline  uint               endIdx(uint segment)         {return m_indicies[segment].info[1];}
+    inline  uint               segmentIdx(uint segment)     {return m_indicies[segment].info[2];}
+    inline  SReal              length(uint segment)         {return m_averageLength[segment];}
+    inline  std::vector<SReal>& length()                    {return m_averageLength;}
 
 private:
     std::vector<infos>    m_indicies;

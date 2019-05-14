@@ -14,7 +14,7 @@ public:
 
     inline  std::vector<SReal>  wq()                                        {return m_wq;}
     inline  SReal               wq(uint i)                                  {return m_wq[i];}
-            void                setToZero(const std::vector<uint>& k)       {for(auto& i : k){if(i < m_wq.size())m_wq[i] = 0;}}
+            void                applyFixedPoint(const std::vector<uint>& k) {for(auto& i : k){if(i < m_wq.size())m_wq[i] = 0;}}
 
 
 

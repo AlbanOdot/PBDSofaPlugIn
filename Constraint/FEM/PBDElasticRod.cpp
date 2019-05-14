@@ -1,7 +1,6 @@
 #include "PBDElasticRod.hpp"
 #include <sofa/core/ObjectFactory.h>
 #include <Eigen/MatrixFunctions>
-#include <sofa/helper/Quater.h>
 
 int PBDElasticRodClass = sofa::core::RegisterObject("Constraint that correct elastic rod.")
                    .add< PBDElasticRod >();
@@ -33,7 +32,7 @@ void PBDElasticRod::solve(PBDObject &object, WriteCoord &p)
         if(!object.hasDataType(PBDObject::ORIENTED))
             object.computeOrientation ();
         object.computeElasticRod();
-        object.applyFixedPoint(m_indices.getValue ());
+        object.elasticRod().applyFixedPoint(m_indices.getValue ());
     }
     auto& eRod = object.elasticRod ();
     auto& u    = object.orientation ().freeOrientation ();
@@ -59,12 +58,12 @@ void PBDElasticRod::solve(PBDObject &object, WriteCoord &p)
             p[z] -= invMass1 * gamma;
 
             //                               Cs                               *  q * e_3.conjugate (cheaper than quaternion product)
-            Quaternion dq0 = Quaternion(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternion(u[a].z(), -u[a].y(), u[a].x(), -u[a].w());
+            Quaternionr dq0 = Quaternionr(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternionr(u[a].z(), -u[a].y(), u[a].x(), -u[a].w());
             u[a].coeffs() += (static_cast<SReal>(2.0) * eRod.wq(e) * eRod.length(e)) * dq0.coeffs ();
 
             // COMPUTE BENDING AND TWISTING
-            Quaternion omega    = u[a].conjugate() * u[z];   //darboux vector
-            Quaternion omega_plus;
+            Quaternionr omega    = u[a].conjugate() * u[z];   //darboux vector
+            Quaternionr omega_plus;
             omega_plus.coeffs() = omega.coeffs() + object.orientation().restDarboux(a).coeffs(); //delta Omega with -Omega_0
             omega.coeffs()      = omega.coeffs() - object.orientation().restDarboux(a).coeffs(); //delta Omega with + omega_0
 

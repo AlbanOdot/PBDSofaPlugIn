@@ -5,6 +5,18 @@
 
 // ------------------------------------------------------------------------------------
 
+/**
+ *
+ *
+ * This file is entirely copy pasted from (with a few changes)
+ *
+ * https://github.com/InteractiveComputerGraphics/PositionBasedDynamics
+ *
+ *
+ *
+ *
+ *
+ **/
 class MathFunctions
 {
 private:
