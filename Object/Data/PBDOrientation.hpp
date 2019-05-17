@@ -15,7 +15,7 @@ public:
     inline  Quaternionr&                orientation(uint i)                                 {return m_orientation[i];}
     inline  std::vector<Quaternionr>&   freeOrientation()                                   {return m_freeOrientation;}
     inline  Quaternionr&                freeOrientation(uint i)                             {return m_freeOrientation[i];}
-    inline  std::vector<Quaternionr>&   restDarbourx()                                      {return m_restDarboux;}
+    inline  std::vector<Quaternionr>&   restDarboux()                                       {return m_restDarboux;}
     inline  Quaternionr&                restDarboux(uint i)                                 {return m_restDarboux[i];}
     inline  std::vector<Vector3r>&      angularSpeed()                                      {return m_angularSpeed;}
     inline  Vector3r&                   angularSpeed(uint i)                                {return m_angularSpeed[i];}

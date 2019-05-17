@@ -9,14 +9,15 @@ PBDStiffRodData::PBDStiffRodData(Mech * m, Topo * t) : PBDBeamElement(m,t)
 void PBDStiffRodData::init()
 {
     const auto& rest = m_mechanicalObject->readRestPositions ();
+    Vector3r zero;
+    zero.setZero ();
     for(const auto& r : rest)
     {
-        m_invMass.emplace_back(Vec6());
-        m_invMass[m_invMass.size() - 1].setZero();
-        m_invAlpha.emplace_back(Vec6());
-        m_invAlpha[m_invAlpha.size() - 1].setZero();
-        m_lambda.emplace_back(Vec6());
-        m_lambda[m_lambda.size() - 1].setZero();
+        m_invInertia.emplace_back(zero);
+        m_invAlpha.emplace_back(zero);
+        m_lambdar.emplace_back(zero);
+        m_lambdabt.emplace_back(zero);
+        m_stiffness.emplace_back(0.0);
     }
 
 }
@@ -24,30 +25,33 @@ void PBDStiffRodData::init()
 void PBDStiffRodData::update()
 {
 
-    m_invMass.clear();
-    m_lambda.clear();
+    m_invInertia.clear();
+    m_lambdar.clear();
+    m_invAlpha.clear();
+    m_lambdabt.clear();
+    m_stiffness.clear();
     if( m_mechanicalObject && m_sofa_topology )
         init ();
 }
 
-void PBDStiffRodData::setInvMass(const std::vector<Vec6> &invMassDiag)
+void PBDStiffRodData::setInvInertia(const std::vector<Vector3r> &invInertiaDiag)
 {
-    if(invMassDiag.size () ==  m_invMass.size ())
+    if(invInertiaDiag.size () ==  m_invInertia.size ())
     {
-        for(uint i = 0; i < invMassDiag.size (); ++i){
-            m_invMass[i] = invMassDiag[i];
+        for(uint i = 0; i < invInertiaDiag.size (); ++i){
+            m_invInertia[i] = invInertiaDiag[i];
         }
     }
-    else if( invMassDiag.size () == 1)
+    else if( invInertiaDiag.size () == 1)
     {
-        for(auto& m : m_invMass)
-            m = invMassDiag[0];
+        for(auto& m : m_invInertia)
+            m = invInertiaDiag[0];
     }
 }
 
-void PBDStiffRodData::setInvAlpha(const std::vector<Vec6> &invalpha)
+void PBDStiffRodData::setInvAlpha(const std::vector<Vector3r> &invalpha)
 {
-    if(invalpha.size () ==  m_invMass.size ())
+    if(invalpha.size () ==  m_invAlpha.size ())
     {
         for(uint i = 0; i < invalpha.size (); ++i){
             m_invAlpha[i] = invalpha[i];
@@ -57,5 +61,20 @@ void PBDStiffRodData::setInvAlpha(const std::vector<Vec6> &invalpha)
     {
         for(auto& m : m_invAlpha)
             m = invalpha[0];
+    }
+}
+
+void PBDStiffRodData::setStiffness(const std::vector<SReal> &stiffness)
+{
+    if(stiffness.size () ==  m_stiffness.size ())
+    {
+        for(uint i = 0; i < stiffness.size (); ++i){
+            m_stiffness[i] = stiffness[i];
+        }
+    }
+    else if( stiffness.size () == 1)
+    {
+        for(auto& m : m_stiffness)
+            m = stiffness[0];
     }
 }

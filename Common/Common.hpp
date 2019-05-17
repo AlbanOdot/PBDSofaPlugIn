@@ -28,18 +28,19 @@ typedef SReal Real;
 #define RealParameterType ParameterBase::DOUBLE
 #define RealVectorParameterType ParameterBase::VEC_DOUBLE
 
-using Vector2r = Eigen::Matrix<Real, 2, 1>;
-using Vector3r = Eigen::Matrix<Real, 3, 1>;
-using Vector4r = Eigen::Matrix<Real, 4, 1>;
-using Vector5r = Eigen::Matrix<Real, 5, 1>;
-using Vector6r = Eigen::Matrix<Real, 6, 1>;
-using Matrix2r = Eigen::Matrix<Real, 2, 2>;
-using Matrix3r = Eigen::Matrix<Real, 3, 3>;
-using Matrix4r = Eigen::Matrix<Real, 4, 4>;
-using AlignedBox2r = Eigen::AlignedBox<Real, 2>;
-using AlignedBox3r = Eigen::AlignedBox<Real, 3>;
-using AngleAxisr = Eigen::AngleAxis<Real>;
-using Quaternionr = Eigen::Quaternion<Real>;
+using Vector2r = Eigen::Matrix<SReal, 2, 1>;
+using Vector3r = Eigen::Matrix<SReal, 3, 1>;
+using Vector4r = Eigen::Matrix<SReal, 4, 1>;
+using Vector5r = Eigen::Matrix<SReal, 5, 1>;
+using Vector6r = Eigen::Matrix<SReal, 6, 1>;
+using Matrix2r = Eigen::Matrix<SReal, 2, 2>;
+using Matrix3r = Eigen::Matrix<SReal, 3, 3>;
+using Matrix4r = Eigen::Matrix<SReal, 4, 4>;
+using Matrix6r = Eigen::Matrix<SReal, 4, 4>;
+using AlignedBox2r = Eigen::AlignedBox<SReal, 2>;
+using AlignedBox3r = Eigen::AlignedBox<SReal, 3>;
+using AngleAxisr = Eigen::AngleAxis<SReal>;
+using Quaternionr = Eigen::Quaternion<SReal>;
 
 //allocators to be used in STL collections containing Eigen structures
 using Alloc_Vector2r = Eigen::aligned_allocator<Vector2r>;
