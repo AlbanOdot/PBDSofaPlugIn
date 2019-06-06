@@ -46,13 +46,23 @@ public:
 
     /// Set the simulation node this animation loop is controlling
     virtual void setNode( sofa::simulation::Node* );
-
-    /// Set the simulation node to the local context if not specified previously
+    /*
+     * Create and init all of the data needed to solve a defined constraint.
+     */
     virtual void init() override;
 
+    /*
+     * Init function of sofa. It's called after the first init of the tree.
+     */
     virtual void bwdInit () override;
 
     /// perform one animation step
+    /*
+     * Inputs : ExecParams *    -> Execution context
+     *          SReal           -> Time Step
+     *
+     * Output : Compute a single step of the simulation
+     */
     virtual void step(const sofa::core::ExecParams* params, SReal dt) override;
 
 

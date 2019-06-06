@@ -41,7 +41,6 @@ public:
     void setUpIntegrator(sofa::simulation::Node* node,
                          int nbIter);
 
-    //Compute new velocity from external forces : velocity = velocity + dt * Forces_ext
     /*
      * Inputs : Node *                  -> Node of the simulation
      *          MechanicalParams *      -> Context of the mechanical object
@@ -50,6 +49,9 @@ public:
      *          const WriteCoord        -> Position at step - 1
      *          WriteDeriv              -> Velocity of the vertices
      *          SReal                   -> Time step
+     *
+     * Output : Compute new velocity from external forces : velocity = velocity + dt * Forces_ext.
+     *          Compute newposition from new velocity : position = position + velocity * dt.
      */
     void integrateExternalForces(const sofa::simulation::Node * gnode,
                                  const sofa::core::MechanicalParams * mparams,
