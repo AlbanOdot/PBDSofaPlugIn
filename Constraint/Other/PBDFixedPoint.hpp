@@ -11,7 +11,12 @@ public:
 
     PBDFixedPoint(sofa::simulation::Node* gnode = NULL){}
     PBDFixedPoint(uint objectSize);
-    virtual Matrix* getConstraintMatrix();
+    /*
+     * Inputs : PBDObject   -> Object on wich we will solve the constraint
+     *          WriteCoord  -> Free positions on wich we apply the dispalcement
+     *
+     * Output : Solve the constraint adding in WriteCoord the computed displacement
+     */
     virtual void solve( PBDObject& object, WriteCoord& p);
 
     /// Construction method called by ObjectFactory.

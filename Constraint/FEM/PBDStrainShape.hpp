@@ -16,7 +16,17 @@ class PBDStrainShape : public PBDFEMConstraint
 {
 public:
     PBDStrainShape(sofa::simulation::Node* gnode = NULL):PBDFEMConstraint(){}
+    /*
+     * Inputs : PBDObject   -> Object on wich we will solve the constraint
+     *          WriteCoord  -> Free positions on wich we apply the dispalcement
+     *
+     * Output : Solve the constraint adding in WriteCoord the computed displacement
+     */
     virtual void solve(PBDObject& object, WriteCoord& p) override;
+
+    /*
+     * Init function of sofa. It's called after the first init of the tree.
+     */
     virtual void bwdInit () override;
 
     /// Construction method called by ObjectFactory.

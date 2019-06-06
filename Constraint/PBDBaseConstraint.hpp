@@ -26,25 +26,30 @@ public:
     typedef sofa::core::objectmodel::Data<sofa::helper::vector<uint>> IndexSet;
     typedef sofa::defaulttype::BaseMatrix Matrix;
 protected:
-    PBDBaseConstraint(bool optisolv = false)
+    PBDBaseConstraint()
         : m_indices(initData(&m_indices, sofa::helper::vector<uint>(), "indices", "ID of the vertices on wich this constraint is to apply")),
-          m_nbIter(initData(&m_nbIter,(uint)1,"iter","Number of iteration for the solver")),
-          m_hasOptimizedSolver(optisolv){}
+          m_nbIter(initData(&m_nbIter,(uint)1,"iter","Number of iteration for the solver")){}
 
     virtual ~PBDBaseConstraint() { }
 
 public:
-
-    inline bool hasOptiSolver() { return m_hasOptimizedSolver;}
-
-    virtual Matrix * getConstraintMatrix() {return nullptr;}
-
+    /*
+     * Inputs : PBDObject   -> Object on wich we will solve the constraint
+     *          WriteCoord  -> Free positions on wich we apply the dispalcement
+     *
+     * Output : Solve the constraint adding in WriteCoord the computed displacement
+     */
     virtual void solve(PBDObject& object, WriteCoord& p) = 0;
 
+    /*
+     * Inputs : int -> Number of iterations
+     *
+     * Some constraints can have their own number of iterations. Do not use unless you know what you're doing.
+     * This will most likely lead to unstabilities.
+     */
     void setIterCount(int c) { m_nbIter.setValue (c);}
 
 public:
-    bool m_hasOptimizedSolver;
     IndexSet m_indices; ///< Indices on wich to apply the constraint
     sofa::core::objectmodel::Data<unsigned int> m_nbIter;
 

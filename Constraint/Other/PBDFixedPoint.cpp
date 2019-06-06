@@ -4,14 +4,10 @@
 int PBDFixedPointClass = sofa::core::RegisterObject("Constraint that fixe a point.")
                             .add< PBDFixedPoint >();
 
-PBDFixedPoint::PBDFixedPoint(unsigned int objectSize) : PBDBaseConstraint(true)
+PBDFixedPoint::PBDFixedPoint(unsigned int objectSize) : PBDBaseConstraint()
 {
 }
 
-sofa::defaulttype::BaseMatrix * PBDFixedPoint::getConstraintMatrix ()
-{
-    return nullptr;
-}
 
 void PBDFixedPoint::solve(PBDObject &object, WriteCoord &p)
 {

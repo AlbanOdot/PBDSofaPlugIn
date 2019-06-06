@@ -12,7 +12,16 @@ public:
     PBDBending(sofa::simulation::Node* gnode = NULL) : PBDElasticConstraint(),
     alpha_wann(initData(&alpha_wann,(SReal)1e-2,"a1","Low frequency ondulation")),
     alpha_too(initData(&alpha_too,(SReal)4e-4,"a2","High frequency ondulation")){}
+    /*
+     * Inputs : PBDObject   -> Object on wich we will solve the constraint
+     *          WriteCoord  -> Free positions on wich we apply the dispalcement
+     *
+     * Output : Solve the constraint adding in WriteCoord the computed displacement
+     */
     virtual void solve(PBDObject& object, WriteCoord& p);
+    /*
+     * Init function of sofa. It's called after the first init of the tree.
+     */
     virtual void bwdInit () override;
     /// Construction method called by ObjectFactory.
     template<class T>
@@ -25,6 +34,15 @@ public:
     }
 
 protected:
+    /*
+     * Inputs : PBDObject   -> Object on wich we will solve the constraint
+     *          uint        -> First vertex of the edge
+     *          uint        -> Second vertex of the edge
+     *          WriteCoord  -> Free positions on wich we apply the dispalcement
+     *          ReadDeriv   -> Velocity of the object's vertices
+     *
+     * Output : Compute and apply the correction to the concerned vertices
+     */
     void correction(PBDObject &object, uint a, uint b, WriteCoord& x, const ReadDeriv& vel);
 protected:
     sofa::core::objectmodel::Data<SReal> alpha_wann;

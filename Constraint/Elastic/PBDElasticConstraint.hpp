@@ -10,8 +10,11 @@ class PBDElasticConstraint : public PBDBaseConstraint
 {
 public:
     PBDElasticConstraint(sofa::simulation::Node* gnode = NULL)
-        : PBDBaseConstraint(true),
+        : PBDBaseConstraint(),
           m_k(initData(&m_k,(SReal)1.0,"resilience","Resilience factor : bending, stretching etc...")){}
+    /*
+     * Init function of sofa. It's called after the first init of the tree.
+     */
     virtual void bwdInit () override {}
 protected:
     sofa::core::objectmodel::Data<SReal> m_k;

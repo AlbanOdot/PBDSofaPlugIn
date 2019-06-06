@@ -10,7 +10,17 @@ class PBDStretch : public PBDElasticConstraint
 {
 public:
     PBDStretch(sofa::simulation::Node* gnode = NULL) : PBDElasticConstraint(){}
+    /*
+     * Inputs : PBDObject   -> Object on wich we will solve the constraint
+     *          WriteCoord  -> Free positions on wich we apply the dispalcement
+     *
+     * Output : Solve the constraint adding in WriteCoord the computed displacement
+     */
     virtual void solve(PBDObject& object, WriteCoord& p);
+
+    /*
+     * Init function of sofa. It's called after the first init of the tree.
+     */
     virtual void bwdInit () override;
     /// Construction method called by ObjectFactory.
     template<class T>
@@ -23,6 +33,12 @@ public:
     }
 
 protected:
+
+    /*
+     * Inputs : uint                -> Index of the first point
+     *          pair<uint,double>   -> Index and re'st distance of the neighbor
+     *          WriteCoord          -> Free position (same as solve)
+     */
     void correction (uint i, const std::pair<uint,double>& voisin, WriteCoord &p);
 protected:
     double m_K;
