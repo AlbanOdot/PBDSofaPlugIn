@@ -9,7 +9,14 @@ class PBDStiffRodData : public PBDBeamElement
     typedef Eigen::Matrix<SReal,6,1> Vec6;
 public:
     PBDStiffRodData(Mech * m = nullptr, Topo* t = nullptr);
+    /*
+     * Create and init all of the data needed to solve a defined constraint.
+     */
     virtual void init() override;
+
+    /*
+     * Reinit all of the data according to the current context
+     */
     virtual void update() override;
 
     inline  std::vector<Vector3r>&      invInertia()                                        {return m_invInertia;}

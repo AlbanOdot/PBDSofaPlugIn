@@ -51,8 +51,12 @@ public:
                  void computeTetrahedraBasis();
                  void computeElasticRod();
                  void computeOrientation();
-                 void computeQ(const sofa::defaulttype::Vec3 *x[4],Eigen::Matrix4d& Q, std::pair<float,float>& area);
                  void computeStiffRod();
+    /*
+     * Inputs : vector<Vector3r>    -> Initial velocity
+     *
+     * Output : Set the angular velocities according to the input. If void will init all velocities to (0,0,0)
+     */
                  void setupAngularVelocity(const std::vector<Vector3r>&);
 
      //PBDDatatype accessors
