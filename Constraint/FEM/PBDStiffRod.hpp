@@ -61,7 +61,7 @@ private:
      *
      * Output : The matrix J is initialized as said in the paper. (J = grad(C))
      */
-    void computeJacobian(const Quaternionr& q, Eigen::Matrix<SReal,3,4>& J, SReal averageSegmentLength);
+    void computedOmega(const Quaternionr& q, Eigen::Matrix<SReal,3,4>& J, SReal averageSegmentLength);
     vec3 m_stretchingAndShearingKs;
     vec3 m_bendingAndTwistingKs;
     sofa::core::objectmodel::Data<SReal> m_radius;

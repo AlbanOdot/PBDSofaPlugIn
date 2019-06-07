@@ -57,15 +57,15 @@ void PBDElasticRod::solve(PBDObject &object, WriteCoord &p)
             p[a] += invMass0 * gamma;
             p[z] -= invMass1 * gamma;
 
-            //                               Cs                               *  q * e_3.conjugate (cheaper than quaternion product)
+            // Cs * q * e_3.conjugate (cheaper than quaternion product)
             Quaternionr dq0 = Quaternionr(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternionr(u[a].z(), -u[a].y(), u[a].x(), -u[a].w());
             u[a].coeffs() += (static_cast<SReal>(2.0) * eRod.wq(e) * eRod.length(e)) * dq0.coeffs ();
 
             // COMPUTE BENDING AND TWISTING
             Quaternionr omega    = u[a].conjugate() * u[z];   //darboux vector
             Quaternionr omega_plus;
-            omega_plus.coeffs() = omega.coeffs() + object.orientation().restDarboux(a).coeffs(); //delta Omega with -Omega_0
-            omega.coeffs()      = omega.coeffs() - object.orientation().restDarboux(a).coeffs(); //delta Omega with + omega_0
+            omega_plus.coeffs() = omega.coeffs() + object.orientation().restDarboux(a).coeffs(); //delta Omega with + Omega_0
+            omega.coeffs()      = omega.coeffs() - object.orientation().restDarboux(a).coeffs(); //delta Omega with - Omega_0
 
             if (omega.squaredNorm() > omega_plus.squaredNorm())
                 omega = omega_plus;
