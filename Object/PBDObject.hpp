@@ -12,6 +12,7 @@
 #include "./Data/FEM/PBDTetrahedronBasis.hpp"
 #include "./Data/FEM/PBDStiffRodData.hpp"
 #include "./Data/FEM/PBDElasticRodData.hpp"
+#include "./Data/FEM/PDCosseratRodData.hpp"
 
 class PBDObject
 {
@@ -29,7 +30,7 @@ class PBDObject
 
 
 public:
-    enum PBDDataType        {STRETCH = 1, BENDING = 2, TETRAHEDRON = 4, MASS = 8, ORIENTED = 16, ELASTICROD = 32, STIFFROD = 64};
+    enum PBDDataType        {STRETCH = 1, BENDING = 2, TETRAHEDRON = 4, MASS = 8, ORIENTED = 16, ELASTICROD = 32, STIFFROD = 64, COSSERATROD = 128};
     enum PBDIntegrationType {NORMAL = 1,  ANGULAR = 2};
 
     PBDObject(sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * mobj,
@@ -52,6 +53,7 @@ public:
                  void computeElasticRod();
                  void computeOrientation();
                  void computeStiffRod();
+                 void computeCosseratRod();
     /*
      * Inputs : vector<Vector3r>    -> Initial velocity
      *
@@ -72,6 +74,7 @@ public:
      inline       PBDOrientation& orientation()                                                                      {return m_orientation;}
      inline       ElasticRodData& elasticRod()                                                                       {return m_elasticRod;}
      inline       StiffRodData& stiffRod()                                                                           {return m_stiffRod;}
+     inline       PDCosseratRodData& cosseratRod()                                                                   {return m_PD_CosseratRod;}
 protected:
 
     //General
@@ -84,8 +87,9 @@ protected:
 
     //FEM
     TetrahedronBasis    m_tetra_bases;
-    ElasticRodData          m_elasticRod;
-    StiffRodData            m_stiffRod;
+    ElasticRodData      m_elasticRod;
+    StiffRodData        m_stiffRod;
+    PDCosseratRodData   m_PD_CosseratRod;
 
     //SOFA
     sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * m_mechanicalObject;

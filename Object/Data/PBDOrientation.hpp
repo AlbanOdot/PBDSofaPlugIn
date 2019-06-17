@@ -28,8 +28,8 @@ public:
     inline  Vector3r&                   angularSpeed(uint i)                                {return m_angularSpeed[i];}
     inline  std::vector<Vector3r>&      torque()                                            {return m_torque;}
     inline  Vector3r&                   torque(uint i)                                      {return m_torque[i];}
-    inline  std::vector<Matrix3r>&      inertia()                                           {return m_inertia;}
-    inline  Matrix3r&                   inertia(uint i)                                     {return m_inertia[i];}
+    inline  std::vector<Vector3r>&      inertia()                                           {return m_inertia;}
+    inline  Vector3r&                   inertia(uint i)                                     {return m_inertia[i];}
 
             void                        setAngularVelocity(const std::vector<Vector3r> &as);
             void                        setTorque(const std::vector<Vector3r>&);
@@ -42,7 +42,7 @@ private:
     std::vector<Quaternionr> m_restDarboux;
     std::vector<Vector3r>    m_angularSpeed;
     std::vector<Vector3r>    m_torque;
-    std::vector<Matrix3r>    m_inertia;
+    std::vector<Vector3r>    m_inertia;
 
 };
 

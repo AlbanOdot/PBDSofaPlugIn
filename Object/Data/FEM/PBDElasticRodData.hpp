@@ -1,5 +1,5 @@
 #ifndef PBDELASTICRODDATA_HPP
-#define PBDELASTICRODATA_HPP
+#define PBDELASTICRODDATA_HPP
 
 #include "./PBDBeamElement.hpp"
 
@@ -30,7 +30,7 @@ public:
 
 
 
-private:
+protected:
     std::vector<SReal>      m_wq;
 
 };

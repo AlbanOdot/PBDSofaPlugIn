@@ -73,3 +73,11 @@ void PBDObject::setupAngularVelocity(const std::vector<Vector3r>& as)
     if(m_dataType & ORIENTED)
         m_orientation.setAngularVelocity(as);
 }
+
+
+void PBDObject::computeCosseratRod()
+{
+    m_PD_CosseratRod = PDCosseratRodData(m_mechanicalObject,m_sofa_topology);
+    m_dataType  |= COSSERATROD;
+    m_integration_type |= ANGULAR;
+}

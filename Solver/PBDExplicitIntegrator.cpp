@@ -69,11 +69,6 @@ void PBDExplicitIntegrator::updatePosAndVel (PBDObject& object,
 {
 
     auto pointCount = v.ref().size();
-    for(uint i = 0; i < pointCount; ++i)
-    {
-        v[i] = (p[i] - x[i]) * inv_dt;
-        x[i] = p[i];
-    }
     if(object.integrate (PBDObject::ANGULAR))
     {
         auto& orientation = object.orientation ();
@@ -81,11 +76,21 @@ void PBDExplicitIntegrator::updatePosAndVel (PBDObject& object,
         auto& omega = orientation.angularSpeed ();
         auto& u = orientation.freeOrientation ();
         Eigen::Quaterniond n;
-        for(uint i = 0; i < orientationCount; ++i)
+
+        for(uint i = 0; i < pointCount; ++i)
         {
+            v[i] = (p[i] - x[i]) * inv_dt;
+            x[i] = p[i];
             n.coeffs () = 2.0*inv_dt*(orientation.orientation (i).conjugate()*u[i]).coeffs ();
-            omega[i] = Eigen::Vector3d(n.x(),n.y (),n.z ());
+            omega[i] = n.vec ();
             orientation.orientation (i) = u[i];
+        }
+
+    }else{
+        for(uint i = 0; i < pointCount; ++i)
+        {
+            v[i] = (p[i] - x[i]) * inv_dt;
+            x[i] = p[i];
         }
     }
 }
@@ -111,7 +116,6 @@ void PBDExplicitIntegrator::setUpIntegrator(sofa::simulation::Node* node, int nb
 void PBDExplicitIntegrator::solveConstraint (PBDObject& object, WriteCoord& p)
 {
     //From here we solve all of the constraints -> solve on p
-
     for(int iter = 0 ; iter < m_nbIter; ++iter)
     {
         for(auto& constraint : m_constraint)
@@ -133,8 +137,8 @@ void PBDExplicitIntegrator::integrateAngularVelocity(PBDObject& object,const SRe
         auto& u = orientation.freeOrientation ();
         for(uint j = 0; j < omega.size (); ++j)
         {
-            omega[j] += dt*I[j].inverse ()*(tau[j] - omega[j].cross(I[j]*omega[j])).eval ();
-            u[j].coeffs() += (0.5-1e-3)*dt*(orientation.orientation (j)*Eigen::Quaterniond(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
+            omega[j] += dt*I[j].asDiagonal ().inverse ()*(tau[j] - omega[j].cross(I[j].asDiagonal ()*omega[j])).eval ();
+            u[j].coeffs() += (0.495)*dt*(orientation.orientation (j)*Eigen::Quaterniond(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
             u[j].normalize ();
         }
     }

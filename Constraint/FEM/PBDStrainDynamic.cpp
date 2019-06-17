@@ -36,10 +36,7 @@ void PBDStrainDynamic::solve(PBDObject &object, WriteCoord &x)
 
     const auto& Dm_inv = object.tetrahedraBases ().data ();
     const uint tetCount = object.sofaTopology ()->getNbTetrahedra ();
-    static Eigen::Matrix3d I;
-    I << 1.,0.,0.,
-            0.,1.,0.,
-            0.,0.,1.;
+    static Eigen::Matrix3d I; I.setIdentity ();
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
         for(uint i = 0; i < tetCount; ++i)

@@ -17,10 +17,10 @@ void PBDBeamElement::init()
         inf.info[0] = edges[i][0];
         inf.info[1] = edges[i][1];
         inf.info[2] = i;
-        m_indicies.emplace_back(inf);
+        m_indices.emplace_back(inf);
         m_averageLength.emplace_back(0.5 * ( (rest[edges[i][0]]-rest[edges[i][1]]).norm () + (rest[edges[a][0]]-rest[edges[a][1]]).norm ()));
     }
-    m_indicies.emplace_back(m_indicies[m_indicies.size () - 1]);
+    m_indices.emplace_back(m_indices[m_indices.size () - 1]);
     m_averageLength.emplace_back(m_averageLength[m_averageLength.size () - 1]);
 
 }
@@ -28,7 +28,7 @@ void PBDBeamElement::init()
 void PBDBeamElement::update()
 {
 
-    m_indicies.clear ();
+    m_indices.clear ();
     m_averageLength.clear ();
     if( m_mechanicalObject && m_sofa_topology )
         init ();

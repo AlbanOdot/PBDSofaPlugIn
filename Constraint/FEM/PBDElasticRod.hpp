@@ -24,6 +24,15 @@ public:
      */
     virtual void bwdInit () override;
 
+    /*
+     * Inputs : ElasticRodData          -> Data structure representing the rod informations
+     *          vector<Quaternionr>     -> Free orientation
+     *          PBDObject   -> Object on wich we will solve the constraint
+     *          WriteCoord  -> Free positions on wich we apply the dispalcement
+     *
+     * Output : Compute and apply the correction
+     */
+    static void correction( ElasticRodData& eRod, std::vector<Quaternionr>& u, PBDObject& object, WriteCoord& p, const vec3& bending_twisting, const uint e);
     /// Construction method called by ObjectFactory.
     template<class T>
     static typename T::SPtr create(T*, sofa::core::objectmodel::BaseContext* context, sofa::core::objectmodel::BaseObjectDescription* arg)
@@ -33,7 +42,8 @@ public:
         if (arg) obj->parse(arg);
         return obj;
     }
-private:
+
+protected:
     vec3 m_stretchingAndShearingKs;
     vec3 m_bendingAndTwistingKs;
     sofa::core::objectmodel::Data<SReal> m_radius;
