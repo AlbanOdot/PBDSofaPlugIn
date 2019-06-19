@@ -1,15 +1,31 @@
 #include "PBDAnimationLoop.hpp"
 #include <sofa/core/ObjectFactory.h>
+#include <sofa/core/visual/VisualParams.h>
+#include <SofaConstraint/LCPConstraintSolver.h>
 
 //Mecha stuffs
 #include <SofaBaseMechanics/MechanicalObject.h>
+
+#include <sofa/helper/AdvancedTimer.h>
 
 //Visitors
 #include <sofa/simulation/PropagateEventVisitor.h>
 #include <sofa/simulation/UpdateMappingEndEvent.h>
 #include <sofa/simulation/UpdateMappingVisitor.h>
+#include <sofa/simulation/BehaviorUpdatePositionVisitor.h>
+#include <sofa/simulation/MechanicalOperations.h>
+#include <sofa/simulation/SolveVisitor.h>
+#include <sofa/simulation/VectorOperations.h>
+#include <sofa/simulation/AnimateBeginEvent.h>
+#include <sofa/simulation/AnimateVisitor.h>
+#include <sofa/simulation/AnimateEndEvent.h>
+#include <sofa/simulation/UpdateContextVisitor.h>
+#include <sofa/simulation/UpdateBoundingBoxVisitor.h>
+#include <SofaConstraint/LCPConstraintSolver.h>
 
 #include <omp.h>
+
+
 
 
 
@@ -28,7 +44,7 @@ int PBDAnimationLoopClass = sofa::core::RegisterObject("Simulation loop to use i
                                             - update the mappings))");
 
 PBDAnimationLoop::PBDAnimationLoop(sofa::simulation::Node* _gnode)
-    : Inherit(),
+    :  Inherit(),
       gnode(_gnode),
       m_nbIter(initData(&m_nbIter,(int)1,"iter","Number of iteration for the solver"))
 {
@@ -67,11 +83,25 @@ void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
 void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
                             SReal dt)
 {
+
     if (dt == 0)
-    {
         dt = gnode->getDt();
+
+    double startTime = gnode->getTime();
+
+    {
+        AnimateBeginEvent ev ( dt );
+        PropagateEventVisitor act ( params, &ev );
+        gnode->execute ( act );
     }
 
+    BehaviorUpdatePositionVisitor beh(params , dt);
+    gnode->execute(&beh);
+
+    AnimateVisitor act(params, dt);
+    gnode->execute ( act );
+
+    //Solve PBDConstraints
     sofa::core::MechanicalParams mparams(*params);
     static const Vec3 zero(0,0,0);
     const float inv_dt = 1.0/dt;
@@ -81,52 +111,43 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         //Object parameters
         WriteCoord x = object.position();
         WriteDeriv v = object.velocity();
-        uint pointCount = x.ref().size();
-
-        //External forces
-        Derivatives dFext(VecDeriv((int)pointCount,zero));
 
         //We will compute constrainst on p
         Coordinates freeCoord(x.ref());
         WriteCoord p = freeCoord;
 
-        //Apply external forces on p
-        m_integrator.integrateExternalForces(gnode,&mparams,dFext,p,x,v,dt);
+        //Solve all of the constraints
+        m_integrator.solveConstraint(object,p);
 
         //Apply torque and angular velocity
         m_integrator.integrateAngularVelocity(object,dt);
-        /*
-         * Generate Collision here
-         */
-
-        //Solve all of the constraints
-        m_integrator.solveConstraint(object,p);
 
         //Integrate using PBD method
         m_integrator.updatePosAndVel(object,p,x,v,inv_dt);
 
     }
 
-//    {
-//        CollisionBeginEvent evBegin;
-//        PropagateEventVisitor eventPropagation( params, &evBegin);
-//        eventPropagation.execute(getContext());
-//    }
+    gnode->setTime ( startTime + dt );
+    gnode->execute< UpdateSimulationContextVisitor >(params);
 
-//    CollisionVisitor act(params);
-//    act.setTags(this->getTags());
-//    act.execute( getContext() );
+    {
+        AnimateEndEvent ev ( dt );
+        PropagateEventVisitor act ( params, &ev );
+        gnode->execute ( act );
+    }
 
-//    {
-//        CollisionEndEvent evEnd;
-//        PropagateEventVisitor eventPropagation( params, &evEnd);
-//        eventPropagation.execute(getContext());
-//    }
-    gnode->execute<UpdateMappingVisitor>(params);
+    //Visual Information update: Ray Pick add a MechanicalMapping used as VisualMapping
+    gnode->execute< UpdateMappingVisitor >(params);
     {
         UpdateMappingEndEvent ev ( dt );
         PropagateEventVisitor act ( params , &ev );
         gnode->execute ( act );
     }
-}
 
+    if (!SOFA_NO_UPDATE_BBOX)
+    {
+        sofa::helper::ScopedAdvancedTimer timer("UpdateBBox");
+        gnode->execute< UpdateBoundingBoxVisitor >(params);
+    }
+
+}

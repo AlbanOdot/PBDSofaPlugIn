@@ -12,6 +12,7 @@ PBDObject::PBDObject(sofa::component::container::MechanicalObject< sofa::default
         m_mass = VertexMass(m_mechanicalObject,m_sofa_topology);
     }
     m_dataType = 0;
+    m_integration_type = 0;
 }
 
 inline void PBDObject::setTopology(sofa::core::topology::BaseMeshTopology *topology)
@@ -30,34 +31,39 @@ void PBDObject::computeStretchTopology()
 {
     m_stretch_topology  = VertexTopology(m_mechanicalObject,m_sofa_topology);
     m_dataType |= STRETCH;
-    m_integration_type |= NORMAL;
+    if(m_integration_type == 0)
+        m_integration_type |= NORMAL;
 }
 
 void PBDObject::computeBendingTopology()
 {
     m_bending_topology = PBDBendingTopology(m_mechanicalObject,m_sofa_topology);
     m_dataType |= BENDING;
-    m_integration_type |= NORMAL;
+    if(m_integration_type == 0)
+        m_integration_type |= NORMAL;
 }
 
 void PBDObject::computeTetrahedraBasis()
 {
     m_tetra_bases = PBDTetrahedronBasis(m_mechanicalObject,m_sofa_topology);
     m_dataType |= TETRAHEDRON;
-    m_integration_type |= NORMAL;
+    if(m_integration_type == 0)
+        m_integration_type |= NORMAL;
 }
 
 void PBDObject::computeOrientation()
 {
     m_orientation = PBDOrientation(m_mechanicalObject,m_sofa_topology);
     m_dataType |= ORIENTED;
-    m_integration_type |= NORMAL;
+    if(m_integration_type == 0)
+        m_integration_type |= NORMAL;
 }
 void PBDObject::computeElasticRod()
 {
     m_elasticRod = PBDElasticRodData(m_mechanicalObject,m_sofa_topology);
     m_dataType |= ELASTICROD;
-    m_integration_type |= ANGULAR;
+    if(m_integration_type == 0 || m_integration_type == NORMAL)
+        m_integration_type |= ANGULAR;
 
 }
 
@@ -65,7 +71,8 @@ void PBDObject::computeStiffRod()
 {
     m_stiffRod = PBDStiffRodData(m_mechanicalObject,m_sofa_topology);
     m_dataType |= STIFFROD;
-    m_integration_type |= NORMAL;
+    if(m_integration_type == 0)
+        m_integration_type |= NORMAL;
 }
 
 void PBDObject::setupAngularVelocity(const std::vector<Vector3r>& as)
@@ -79,5 +86,6 @@ void PBDObject::computeCosseratRod()
 {
     m_PD_CosseratRod = PDCosseratRodData(m_mechanicalObject,m_sofa_topology);
     m_dataType  |= COSSERATROD;
-    m_integration_type |= ANGULAR;
+    if(m_integration_type == 0 || m_integration_type == NORMAL)
+        m_integration_type |= ANGULAR;
 }

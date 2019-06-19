@@ -14,6 +14,9 @@
 #include <sofa/simulation/CollisionBeginEvent.h>
 #include <sofa/simulation/CollisionEndEvent.h>
 
+#include <sofa/simulation/CollisionAnimationLoop.h>
+#include <SofaConstraint/LCPConstraintSolver.h>
+
 class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
 {
     typedef sofa::defaulttype::Vec3Types::Coord       Coord;
@@ -65,7 +68,6 @@ public:
      */
     virtual void step(const sofa::core::ExecParams* params, SReal dt) override;
 
-
     /// Construction method called by ObjectFactory.
     template<class T>
     static typename T::SPtr create(T*, BaseContext* context, BaseObjectDescription* arg)
@@ -90,6 +92,9 @@ protected :
     std::vector<PBDObject> m_objects;
 
     sofa::core::objectmodel::Data<int> m_nbIter;
+
+    sofa::core::behavior::ConstraintSolver *constraintSolver;
+    sofa::component::constraintset::LCPConstraintSolver::SPtr defaultSolver;
 
 };
 #endif //PBDANIMATIONLOOP_HPP

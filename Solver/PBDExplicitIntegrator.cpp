@@ -69,7 +69,7 @@ void PBDExplicitIntegrator::updatePosAndVel (PBDObject& object,
 {
 
     auto pointCount = v.ref().size();
-    if(object.integrate (PBDObject::ANGULAR))
+    if(object.integrate(PBDObject::ANGULAR))
     {
         auto& orientation = object.orientation ();
         auto orientationCount = orientation.freeOrientation ().size ();
@@ -138,7 +138,7 @@ void PBDExplicitIntegrator::integrateAngularVelocity(PBDObject& object,const SRe
         for(uint j = 0; j < omega.size (); ++j)
         {
             omega[j] += dt*I[j].asDiagonal ().inverse ()*(tau[j] - omega[j].cross(I[j].asDiagonal ()*omega[j])).eval ();
-            u[j].coeffs() += (0.495)*dt*(orientation.orientation (j)*Eigen::Quaterniond(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
+            u[j].coeffs() += (0.5)*dt*(orientation.orientation (j)*Eigen::Quaterniond(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
             u[j].normalize ();
         }
     }

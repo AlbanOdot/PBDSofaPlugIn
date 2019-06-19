@@ -103,7 +103,6 @@ void PDCosseratRod::solveLinearSystem( PDCosseratRodData& cRod,
     dx[a] += (invMass0 * cRod.ws(a) + 1e-6) * gamma;
     dx[z] -= (invMass1 * cRod.ws(z) + 1e-6) * gamma;
 
-
     // COMPUTE BENDING AND TWISTING
     Quaternionr omega  = u[a].conjugate() * u[z];   //darboux vector
     omega.w() = 0.0;    //discrete Darboux vector does not have vanishing scalar part
