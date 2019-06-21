@@ -1,6 +1,6 @@
 #include "PBDTriangleAreaTopology.hpp"
 
-PBDTriangleAreaTopology::PBDTriangleAreaTopology(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
+PBDTriangleAreaTopology::PBDTriangleAreaTopology(Mech * m, Topo * t) : PBDBaseConstraintData<sofa::defaulttype::Vec3Types> (m,t)
 {
     if( m && t )
         init ();

@@ -6,17 +6,18 @@
 #include <sofa/simulation/Node.h>
 #include <SofaBaseMechanics/MechanicalObject.h>
 #include "../Constraint/PBDBaseConstraint.hpp"
-#include "../Object/PBDObject.hpp"
+#include "../InternalData/PBDObject.hpp"
 
+template < class T >
 class PBDExplicitIntegrator : public virtual sofa::core::objectmodel::BaseObject
 {
-    typedef sofa::defaulttype::Vec3Types::Coord       Coord;
+    typedef typename T::Coord       Coord;
     typedef sofa::helper::vector<Coord>               VecCoord;
     typedef sofa::core::objectmodel::Data<VecCoord>   Coordinates;
     typedef sofa::helper::ReadAccessor  <Coordinates> ReadCoord;
     typedef sofa::helper::WriteAccessor <Coordinates> WriteCoord;
 
-    typedef sofa::defaulttype::Vec3Types::Deriv       Deriv;
+    typedef typename T::Deriv       Deriv;
     typedef sofa::helper::vector<Deriv>               VecDeriv;
     typedef sofa::core::objectmodel::Data<VecDeriv>   Derivatives;
     typedef sofa::helper::ReadAccessor  <Derivatives> ReadDeriv;
@@ -68,7 +69,7 @@ public:
      *
      * Output : Integrate the object position using the angular velocity and a given torque
      */
-    void integrateAngularVelocity(PBDObject& object,const SReal &dt);
+    void integrateAngularVelocity(PBDObject<T>& object,const SReal &dt);
 
     //Update position and velocity from newly computed position
     /*
@@ -81,7 +82,7 @@ public:
      * Output : Update the velocity with : velocity = (freePosition - position) / timestep.
      *          Update the position with : position = freePosition
      */
-    void updatePosAndVel(PBDObject& object,
+    void updatePosAndVel(PBDObject<T>& object,
                          const WriteCoord& p,
                          WriteCoord& x,
                          WriteDeriv& v,
@@ -94,11 +95,14 @@ public:
      *
      * Output : Start the main loop of constraint solving
      */
-    void solveConstraint(PBDObject& object,
+    void solveConstraint(PBDObject<T>& object,
                          WriteCoord& p);
 
 protected:
-    std::vector<PBDBaseConstraint * > m_constraint;
+    std::vector<PBDBaseConstraint<T> * > m_constraint;
     int m_nbIter;
 };
+
+template class PBDExplicitIntegrator<sofa::defaulttype::Vec3Types>;
+template class PBDExplicitIntegrator<sofa::defaulttype::RigidTypes>;
 #endif //PBDEXPLICITINTEGRATOR_HPP

@@ -14,15 +14,17 @@
 #include "./Data/FEM/PBDElasticRodData.hpp"
 #include "./Data/FEM/PDCosseratRodData.hpp"
 
+template < class T >
 class PBDObject
 {
-    typedef sofa::defaulttype::Vec3Types::Coord       Coord;
+    typedef sofa::defaulttype::Vec3 Vec3;
+    typedef typename T::Coord       Coord;
     typedef sofa::helper::vector<Coord>               VecCoord;
     typedef sofa::core::objectmodel::Data<VecCoord>   Coordinates;
     typedef sofa::helper::ReadAccessor  <Coordinates> ReadCoord;
     typedef sofa::helper::WriteAccessor <Coordinates> WriteCoord;
 
-    typedef sofa::defaulttype::Vec3Types::Deriv       Deriv;
+    typedef typename T::Deriv       Deriv;
     typedef sofa::helper::vector<Deriv>               VecDeriv;
     typedef sofa::core::objectmodel::Data<VecDeriv>   Derivatives;
     typedef sofa::helper::ReadAccessor  <Derivatives> ReadDeriv;
@@ -33,7 +35,7 @@ public:
     enum PBDDataType        {STRETCH = 1, BENDING = 2, TETRAHEDRON = 4, MASS = 8, ORIENTED = 16, ELASTICROD = 32, STIFFROD = 64, COSSERATROD = 128};
     enum PBDIntegrationType {NORMAL = 1,  ANGULAR = 2};
 
-    PBDObject(sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * mobj,
+    PBDObject(sofa::component::container::MechanicalObject< T > * mobj,
               sofa::core::topology::BaseMeshTopology * topo = nullptr);
 
     //Sofa data accessors
@@ -47,52 +49,52 @@ public:
 
     //PBDDatatype setters
     inline       void setTopology(sofa::core::topology::BaseMeshTopology * topology);
-                 void computeStretchTopology();
-                 void computeBendingTopology();
-                 void computeTetrahedraBasis();
-                 void computeElasticRod();
-                 void computeOrientation();
-                 void computeStiffRod();
-                 void computeCosseratRod();
+    void computeStretchTopology();
+    void computeBendingTopology();
+    void computeTetrahedraBasis();
+    void computeElasticRod();
+    void computeOrientation();
+    void computeStiffRod();
+    void computeCosseratRod();
     /*
-     * Inputs : vector<Vector3r>    -> Initial velocity
+     * Inputs : vector<Vec3>    -> Initial velocity
      *
      * Output : Set the angular velocities according to the input. If void will init all velocities to (0,0,0)
      */
-                 void setupAngularVelocity(const std::vector<Vector3r>&);
+    void setupAngularVelocity(const std::vector<Vec3>&);
 
-     //PBDDatatype accessors
-     inline       VertexMassData& mass()                                                                             {return m_mass.m();}
-     inline       VertexMassData& invMass()                                                                          {return m_mass.w();}
-     inline       SReal& mass(uint i)                                                                                {return m_mass.m(i);}
-     inline       SReal& invMass(uint i)                                                                             {return m_mass.w(i);}
-     inline       VertexTopology& topology()                                                                         {return m_stretch_topology;}
-     inline       BendingTopology& bendTopology()                                                                    {return m_bending_topology;}
-     inline       sofa::core::topology::BaseMeshTopology * sofaTopology()                                            {return m_sofa_topology;}
-     inline       sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * object()            {return m_mechanicalObject;}
-     inline       TetrahedronBasis& tetrahedraBases()                                                                {return m_tetra_bases;}
-     inline       PBDOrientation& orientation()                                                                      {return m_orientation;}
-     inline       ElasticRodData& elasticRod()                                                                       {return m_elasticRod;}
-     inline       StiffRodData& stiffRod()                                                                           {return m_stiffRod;}
-     inline       PDCosseratRodData& cosseratRod()                                                                   {return m_PD_CosseratRod;}
+    //PBDDatatype accessors
+    inline       VertexMassData& mass()                                                                             {return m_mass.m();}
+    inline       VertexMassData& invMass()                                                                          {return m_mass.w();}
+    inline       SReal& mass(uint i)                                                                                {return m_mass.m(i);}
+    inline       SReal& invMass(uint i)                                                                             {return m_mass.w(i);}
+    inline       PBDVertexTopology<T>& topology()                                                                         {return m_stretch_topology;}
+    inline       PBDBendingTopology& bendTopology()                                                                    {return m_bending_topology;}
+    inline       sofa::core::topology::BaseMeshTopology * sofaTopology()                                            {return m_sofa_topology;}
+    inline       sofa::component::container::MechanicalObject< T > * object()            {return m_mechanicalObject;}
+    inline       PBDTetrahedronBasis& tetrahedraBases()                                                                {return m_tetra_bases;}
+    inline       PBDOrientation& orientation()                                                                      {return m_orientation;}
+    inline       ElasticRodData& elasticRod()                                                                       {return m_elasticRod;}
+    inline       StiffRodData& stiffRod()                                                                           {return m_stiffRod;}
+    inline       PDCosseratRodData& cosseratRod()                                                                   {return m_PD_CosseratRod;}
 protected:
 
     //General
     PBDOrientation  m_orientation;
-    VertexMass      m_mass;
+    PBDVertexMass<T>      m_mass;
 
     //Elastic
-    VertexTopology  m_stretch_topology;//<<Topology optimized to apply constraints on vertex
-    BendingTopology m_bending_topology;
+    PBDVertexTopology<T>  m_stretch_topology;//<<Topology optimized to apply constraints on vertex
+    PBDBendingTopology m_bending_topology;
 
     //FEM
-    TetrahedronBasis    m_tetra_bases;
+    PBDTetrahedronBasis   m_tetra_bases;
     ElasticRodData      m_elasticRod;
     StiffRodData        m_stiffRod;
     PDCosseratRodData   m_PD_CosseratRod;
 
     //SOFA
-    sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > * m_mechanicalObject;
+    sofa::component::container::MechanicalObject< T > * m_mechanicalObject;
     sofa::core::topology::BaseMeshTopology *                                       m_sofa_topology; //<<Basic sofa topology usefull for a lot of thing
     std::vector<ReadCoord>                                                         m_rest;
 
@@ -101,4 +103,7 @@ protected:
     unsigned long int   m_integration_type;
 
 };
+
+template class PBDObject<sofa::defaulttype::Vec3Types>;
+template class PBDObject<sofa::defaulttype::RigidTypes>;
 #endif

@@ -5,7 +5,7 @@
 int PDCosseratRodClass = sofa::core::RegisterObject("Constraint that correct elastic rod.")
                          .add< PDCosseratRod >();
 
-typedef sofa::defaulttype::Vec3 V3;
+using namespace sofa::defaulttype;
 
 void PDCosseratRod::bwdInit ()
 {
@@ -23,12 +23,12 @@ void PDCosseratRod::bwdInit ()
 }
 
 
-void PDCosseratRod::solve(PBDObject &object, WriteCoord &p)
+void PDCosseratRod::solve(PBDObject<sofa::defaulttype::Rigid3Types> &object, WriteCoord &p)
 {
 
-    if(!object.hasDataType(PBDObject::COSSERATROD) || !object.hasDataType(PBDObject::ORIENTED))
+    if(!object.hasDataType(PBDObject<sofa::defaulttype::Rigid3Types>::COSSERATROD) || !object.hasDataType(PBDObject<sofa::defaulttype::Rigid3Types>::ORIENTED))
     {
-        if(!object.hasDataType(PBDObject::ORIENTED))
+        if(!object.hasDataType(PBDObject<sofa::defaulttype::Rigid3Types>::ORIENTED))
             object.computeOrientation ();
 
         object.computeCosseratRod ();
@@ -36,7 +36,7 @@ void PDCosseratRod::solve(PBDObject &object, WriteCoord &p)
         object.cosseratRod().setupW(m_young_modulus.getValue (),m_poisson_ratio.getValue (), m_radius.getValue ());
         object.orientation ().setInertia ({{m_bendingAndTwistingKs[0],m_bendingAndTwistingKs[1], m_bendingAndTwistingKs[2]}});
 
-        Quaternionr q; q.coeffs ().setZero ();
+        Quaternion q(0,0,0,0);
         vec3 x(0,0,0);
         for(uint e = 0; e < object.cosseratRod().wq().size (); ++e )
         {
@@ -46,14 +46,14 @@ void PDCosseratRod::solve(PBDObject &object, WriteCoord &p)
     }
 
     auto& cRod = object.cosseratRod ();
-    auto& u    = object.orientation ().freeOrientation ();
+    auto& u    = object.orientation ().freeOrientation();
 
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
         uint a = cRod.beginIdx (0);
         uint z = cRod.endIdx(0);
         m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
-        m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
+        m_dq[a].set (0,0,0,0) ;m_dq[z].set(0,0,0,0);
         //Ligne 9
         correction(cRod,u,object,p,m_bendingAndTwistingKs,0);
         //Ligne 10
@@ -64,14 +64,14 @@ void PDCosseratRod::solve(PBDObject &object, WriteCoord &p)
             uint a = cRod.beginIdx (e);
             uint z = cRod.endIdx(e);
             m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
-            m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
+            m_dq[a].set (0,0,0,0) ;m_dq[z].set(0,0,0,0);
             //Ligne 9
             correction(cRod,u,object,p,m_bendingAndTwistingKs,e);
             //Ligne 10
             solveLinearSystem(cRod,u,m_dx,m_dq,object,p,e);
 
-            p[e] += m_dx[e-1];
-            u[e].coeffs () += m_dq[e-1].coeffs ();
+            p[e].getCenter() += m_dx[e-1];
+            u[e] += m_dq[e-1];
         }
 
         u[u.size ()-1] = u[u.size()-2];
@@ -80,10 +80,10 @@ void PDCosseratRod::solve(PBDObject &object, WriteCoord &p)
 
 
 void PDCosseratRod::solveLinearSystem( PDCosseratRodData& cRod,
-                                       std::vector<Quaternionr>& u,
+                                       std::vector<Quaternion>& u,
                                        std::vector<vec3> dx,
-                                       std::vector<Quaternionr> dq,
-                                       PBDObject& object,
+                                       std::vector<Quaternion> dq,
+                                       PBDObject<sofa::defaulttype::Rigid3Types>& object,
                                        WriteCoord& p,
                                        const uint e)
 {
@@ -94,25 +94,26 @@ void PDCosseratRod::solveLinearSystem( PDCosseratRodData& cRod,
     const SReal invMass0 = object.invMass(z);
 
     //  COMPUTE STRETCHING AND SHEARING
+    // 3 = w, 0 = x, 1 = y, 2 = z
     vec3 d3;
-    d3[0] = static_cast<SReal>(2.0) * (u[a].x() * u[a].z() + u[a].w() * u[a].y());
-    d3[1] = static_cast<SReal>(2.0) * (u[a].y() * u[a].z() - u[a].w() * u[a].x());
-    d3[2] = u[a].w() * u[a].w() - u[a].x() * u[a].x() - u[a].y() * u[a].y() + u[a].z() * u[a].z();	//third director d3 = q0 * e_3 * q0_conjugate
+    d3[0] = static_cast<SReal>(2.0) * (u[a][0] * u[a][2] + u[a][3] * u[a][1]);
+    d3[1] = static_cast<SReal>(2.0) * (u[a][1] * u[a][2] - u[a][3] * u[a][0]);
+    d3[2] = u[a][3] * u[a][3] - u[a][0] * u[a][0] - u[a][1] * u[a][1] + u[a][2] * u[a][2];	//third director d3 = q0 * e_3 * q0_conjugate
 
-    vec3 gamma = (p[z] - p[a]) / cRod.length(e) - d3;
-    dx[a] += (invMass0 * cRod.ws(a) + 1e-6) * gamma;
-    dx[z] -= (invMass1 * cRod.ws(z) + 1e-6) * gamma;
+    vec3 gamma = (p[z].getCenter () - p[a].getCenter ()) / cRod.length(e) - d3;
+    dx[a] += gamma * (invMass0 * cRod.ws(a) + 1e-6);
+    dx[z] -= gamma * (invMass1 * cRod.ws(z) + 1e-6);
 
     // COMPUTE BENDING AND TWISTING
-    Quaternionr omega  = u[a].conjugate() * u[z];   //darboux vector
-    omega.w() = 0.0;    //discrete Darboux vector does not have vanishing scalar part
+    Quaternion omega    = u[a].inverse ()* u[z];  //darboux vector
+    omega[3] = 0.0;    //discrete Darboux vector does not have vanishing scalar part
     if( cRod.wq(a) > 0.0 )
     {
         // Cs * q * e_3.conjugate (cheaper than quaternion product)
         //The 0.5 is already computed inside wbt
-        Quaternionr u0 = Quaternionr(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternionr(u[a].z(), -u[a].y(), u[a].x(), -u[a].w());
-        dq[a].coeffs() = (static_cast<SReal>(2.0) * cRod.length(a) * cRod.wbt(a)) * u0.coeffs ();
-        dq[a].coeffs () += cRod.wbt(a) * (dq[a] * omega).coeffs ();
+        Quaternion u0 = Quaternion(0.0, gamma[0], gamma[1], gamma[2]) * Quaternion(u[a][2], -u[a][1], u[a][0], -u[a][3]);
+        dq[a] = u0* (static_cast<SReal>(2.0) * cRod.length(a) * cRod.wbt(a));
+        dq[a] += (dq[a] * omega) * cRod.wbt(a);
     }
-    dq[z].coeffs () -= (cRod.wbt(z) * cRod.wq (z)) * (u[z] * omega).coeffs ();
+    dq[z] += (u[z] * omega) * (cRod.wbt(z) * cRod.wq (z));
 }

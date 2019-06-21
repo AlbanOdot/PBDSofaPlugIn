@@ -4,8 +4,11 @@
 #include "PBDBaseConstraintData.hpp"
 typedef std::vector<SReal> VertexMassData;
 
-class PBDVertexMass : public PBDBaseConstraintData
+template < class T >
+class PBDVertexMass : public PBDBaseConstraintData<T>
 {
+    typedef sofa::component::container::MechanicalObject< T > Mech;
+    typedef sofa::core::topology::BaseMeshTopology  Topo;
 public:
     PBDVertexMass(Mech * m = nullptr, Topo* t = nullptr);
     /*
@@ -26,8 +29,11 @@ public:
 private:
     VertexMassData m_mass;
     VertexMassData m_weight;
+
+
 };
 
-typedef PBDVertexMass VertexMass;
+template class PBDVertexMass<sofa::defaulttype::Vec3Types>;
+template class PBDVertexMass<sofa::defaulttype::RigidTypes>;
 
 #endif // PBDVERTEXMass_HPP

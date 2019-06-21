@@ -3,7 +3,8 @@
 
 #include "../PBDBaseConstraintData.hpp"
 typedef struct s_infos{uint info[3];} infos;
-class PBDBeamElement : public PBDBaseConstraintData
+
+class PBDBeamElement : public PBDBaseConstraintData<sofa::defaulttype::RigidTypes>
 {
 public:
     PBDBeamElement(Mech * m = nullptr, Topo* t = nullptr);

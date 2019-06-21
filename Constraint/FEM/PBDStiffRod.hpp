@@ -8,7 +8,7 @@
 // * https://animation.rwth-aachen.de/media/papers/2018-CGF-Rods.pdf
 // */
 
-//class PBDStiffRod : public PBDFEMConstraint
+//class PBDStiffRod : public PBDFEMConstraint<sofa::defaulttype::RigidCoord<3,SReal>>
 //{
 //    typedef sofa::defaulttype::Vec3 vec3;
 //    typedef Eigen::Matrix<SReal,6,1> Vec6;

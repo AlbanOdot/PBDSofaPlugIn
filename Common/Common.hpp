@@ -17,6 +17,7 @@
 #include <Eigen/Dense>
 #include <float.h>
 #include <sofa/simulation/Node.h>
+#include <sofa/helper/Quater.h>
 //#define USE_DOUBLE
 #define MIN_PARALLEL_SIZE 64
 
@@ -42,6 +43,8 @@ using AlignedBox3r = Eigen::AlignedBox<SReal, 3>;
 using AngleAxisr = Eigen::AngleAxis<SReal>;
 using Quaternionr = Eigen::Quaternion<SReal>;
 
+using Quaternion = sofa::helper::Quater<SReal>;
+
 //allocators to be used in STL collections containing Eigen structures
 using Alloc_Vector2r = Eigen::aligned_allocator<Vector2r>;
 using Alloc_Vector3r = Eigen::aligned_allocator<Vector3r>;
@@ -53,6 +56,7 @@ using Alloc_AlignedBox2r = Eigen::aligned_allocator<AlignedBox2r>;
 using Alloc_AlignedBox3r = Eigen::aligned_allocator<AlignedBox3r>;
 using Alloc_AngleAxisr = Eigen::aligned_allocator<AngleAxisr>;
 using Alloc_Quaternionr = Eigen::aligned_allocator<Quaternionr>;
+
 
 #if EIGEN_ALIGN
 	#define PDB_MAKE_ALIGNED_OPERATOR_NEW EIGEN_MAKE_ALIGNED_OPERATOR_NEW

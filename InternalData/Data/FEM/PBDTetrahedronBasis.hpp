@@ -5,7 +5,7 @@
 
 typedef std::vector<std::pair<float,Eigen::Matrix3d>> TetrahedronBasisData;
 
-class PBDTetrahedronBasis : public PBDBaseConstraintData
+class PBDTetrahedronBasis : public PBDBaseConstraintData<sofa::defaulttype::Vec3Types>
 {
 public:
     PBDTetrahedronBasis(Mech * m = nullptr, Topo* t = nullptr);
@@ -24,7 +24,5 @@ public:
 private:
     TetrahedronBasisData m_data;
 };
-
-typedef PBDTetrahedronBasis TetrahedronBasis;
 
 #endif // PBDTETRAHEDRONBASIS_HPP

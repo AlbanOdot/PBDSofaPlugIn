@@ -24,10 +24,10 @@ void PBDStrainShape::bwdInit ()
     dt2 = node->getDt () * node->getDt ();
 }
 
-void PBDStrainShape::solve(PBDObject &object, WriteCoord &x)
+void PBDStrainShape::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoord &x)
 {
 
-    if(!object.hasDataType(PBDObject::TETRAHEDRON))
+    if(!object.hasDataType(PBDObject<sofa::defaulttype::Vec3Types>::TETRAHEDRON))
     {
         object.computeTetrahedraBasis ();
     }

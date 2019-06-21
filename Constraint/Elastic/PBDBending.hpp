@@ -18,7 +18,7 @@ public:
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject& object, WriteCoord& p);
+    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p);
     /*
      * Init function of sofa. It's called after the first init of the tree.
      */
@@ -43,7 +43,7 @@ protected:
      *
      * Output : Compute and apply the correction to the concerned vertices
      */
-    void correction(PBDObject &object, uint a, uint b, WriteCoord& x, const ReadDeriv& vel);
+    void correction(PBDObject<sofa::defaulttype::Vec3Types> &object, uint a, uint b, WriteCoord& x, const ReadDeriv& vel);
 protected:
     sofa::core::objectmodel::Data<SReal> alpha_wann;
     sofa::core::objectmodel::Data<SReal> alpha_too;

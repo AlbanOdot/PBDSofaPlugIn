@@ -24,19 +24,19 @@ void PBDElasticRod::bwdInit ()
 }
 
 
-void PBDElasticRod::solve(PBDObject &object, WriteCoord &p)
+void PBDElasticRod::solve(PBDObject<sofa::defaulttype::Rigid3Types> &object, WriteCoord &p)
 {
 
-    if(!object.hasDataType(PBDObject::ELASTICROD) || !object.hasDataType(PBDObject::ORIENTED))
+    if(!object.hasDataType(PBDObject<sofa::defaulttype::Rigid3Types>::ELASTICROD) || !object.hasDataType(PBDObject<sofa::defaulttype::Rigid3Types>::ORIENTED))
     {
-        if(!object.hasDataType(PBDObject::ORIENTED))
+        if(!object.hasDataType(PBDObject<sofa::defaulttype::Rigid3Types>::ORIENTED))
             object.computeOrientation ();
         object.computeElasticRod();
         object.elasticRod().applyFixedPoint(m_indices.getValue ());
         object.orientation ().setInertia ({{m_bendingAndTwistingKs[0],m_bendingAndTwistingKs[1], m_bendingAndTwistingKs[2]}});
     }
     auto& eRod = object.elasticRod ();
-    auto& u    = object.orientation ().freeOrientation ();
+    auto& u    = object.orientation().freeOrientation();
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
         for(uint e = 0; e < eRod.wq().size (); ++e )
@@ -47,8 +47,14 @@ void PBDElasticRod::solve(PBDObject &object, WriteCoord &p)
     }
 }
 
+inline SReal squaredNorm( const Quaternion& q)
+{
+    return q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3];
+}
 
-void PBDElasticRod::correction( ElasticRodData& eRod, std::vector<Quaternionr>& u, PBDObject& object, WriteCoord& p,const vec3& bending_twisting, const uint e)
+
+
+void PBDElasticRod::correction( ElasticRodData& eRod, std::vector<Quaternion>& u, PBDObject<sofa::defaulttype::Rigid3Types>& object, WriteCoord& p,const vec3& bending_twisting, const uint e)
 {
     static const SReal eps = 1e-6;
 
@@ -58,37 +64,38 @@ void PBDElasticRod::correction( ElasticRodData& eRod, std::vector<Quaternionr>& 
     const SReal invMass0 = object.invMass(z);
 
     //  COMPUTE STRETCHING AND SHEARING
+    // 3 = w, 0 = x, 1 = y, 2 = z
     vec3 d3;
-    d3[0] = static_cast<SReal>(2.0) * (u[a].x() * u[a].z() + u[a].w() * u[a].y());
-    d3[1] = static_cast<SReal>(2.0) * (u[a].y() * u[a].z() - u[a].w() * u[a].x());
-    d3[2] = u[a].w() * u[a].w() - u[a].x() * u[a].x() - u[a].y() * u[a].y() + u[a].z() * u[a].z();	//third director d3 = q0 * e_3 * q0_conjugate
+    d3[0] = static_cast<SReal>(2.0) * (u[a][0] * u[a][2] + u[a][3] * u[a][1]);
+    d3[1] = static_cast<SReal>(2.0) * (u[a][1] * u[a][2] - u[a][3] * u[a][0]);
+    d3[2] = u[a][3] * u[a][3] - u[a][0] * u[a][0] - u[a][1] * u[a][1] + u[a][2] * u[a][2];	//third director d3 = q0 * e_3 * q0_conjugate
 
-    vec3 gamma = (p[z] - p[a]) / eRod.length(e) - d3;
+    vec3 gamma = (p[z].getCenter () - p[a].getCenter ()) / eRod.length(e) - d3;
     gamma     /= (invMass1 + invMass0) / eRod.length(e)+ eRod.wq(e) * static_cast<SReal>(4.0)*eRod.length(e) + eps;
-    p[a] += invMass0 * gamma;
-    p[z] -= invMass1 * gamma;
+    p[a].getCenter () += invMass0 * gamma;
+    p[z].getCenter () -= invMass1 * gamma;
 
     if( eRod.wq(a) > 0.0 )
     {
         // Cs * q * e_3.conjugate (cheaper than quaternion product)
-        Quaternionr dq0 = Quaternionr(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternionr(u[a].z(), -u[a].y(), u[a].x(), -u[a].w());
-        u[a].coeffs() += (static_cast<SReal>(2.0) * eRod.wq(e) * eRod.length(e)) * dq0.coeffs ();
+        Quaternion dq0 = Quaternion(0.0, gamma[0], gamma[1], gamma[2]) * Quaternion(u[a][2], -u[a][1], u[a][0], -u[a][3]);
+        u[a] += dq0 * (static_cast<SReal>(2.0) * eRod.wq(e) * eRod.length(e));
     }
 
     // COMPUTE BENDING AND TWISTING
-    Quaternionr omega    = u[a].conjugate() * u[z];   //darboux vector
-    Quaternionr omega_plus;
-    omega_plus.coeffs() = omega.coeffs() + object.orientation().restDarboux(a).coeffs(); //delta Omega with + Omega_0
-    omega.coeffs()      = omega.coeffs() - object.orientation().restDarboux(a).coeffs(); //delta Omega with - Omega_0
+    Quaternion omega    = u[a].inverse ()* u[z];   //darboux vector
+    Quaternion omega_plus;
+    omega_plus = omega + object.orientation().restDarboux(a); //delta Omega with + Omega_0
+    omega = omega + (object.orientation().restDarboux(a) * -1); //delta Omega with - Omega_0
 
-    if (omega.squaredNorm() > omega_plus.squaredNorm())
+    if (squaredNorm(omega) > squaredNorm (omega_plus))
         omega = omega_plus;
 
     for (uint i = 0; i < 3; i++)
-        omega.coeffs()[i] *= bending_twisting[i] / (eRod.wq(a) + eRod.wq(z) + eps);
-    omega.w() = 0.0;    //discrete Darboux vector does not have vanishing scalar part
+        omega[i] *= bending_twisting[i] / (eRod.wq(a) + eRod.wq(z) + eps);
+    omega[3] = 0.0;    //discrete Darboux vector does not have vanishing scalar part
 
-    u[a].coeffs() +=  eRod.wq(a) * (u[z] * omega).coeffs ();
-    u[z].coeffs() -=  eRod.wq(z) * (u[a] * omega).coeffs ();
+    u[a] += (u[z] * omega) * eRod.wq(a);
+    u[z] += (u[a] * omega) * eRod.wq(z) * -1.0;
 
 }

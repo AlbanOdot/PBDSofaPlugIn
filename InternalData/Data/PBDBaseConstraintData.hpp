@@ -3,11 +3,13 @@
 
 #include <SofaBaseMechanics/MechanicalObject.h>
 
+template< class T>
 class PBDBaseConstraintData
 {
 public:
-    typedef sofa::component::container::MechanicalObject< sofa::defaulttype::Vec3Types > Mech;
+    typedef sofa::component::container::MechanicalObject< T > Mech;
     typedef sofa::core::topology::BaseMeshTopology  Topo;
+    typedef sofa::helper::Quater<SReal> Quaternion;
 
     PBDBaseConstraintData(Mech * m = nullptr, Topo* t = nullptr) : m_mechanicalObject(m),m_sofa_topology(t){}
 

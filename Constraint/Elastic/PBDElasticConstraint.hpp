@@ -6,7 +6,7 @@
 #include <sofa/core/objectmodel/BaseContext.h>
 #include <sofa/simulation/Node.h>
 
-class PBDElasticConstraint : public PBDBaseConstraint
+class PBDElasticConstraint : public PBDBaseConstraint<sofa::defaulttype::Vec3Types>
 {
 public:
     PBDElasticConstraint(sofa::simulation::Node* gnode = NULL)

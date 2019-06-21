@@ -12,17 +12,17 @@
  *  This class implement https://sci-hub.tw/10.1016/j.cag.2014.07.004
 */
 
-class PBDStrainShape : public PBDFEMConstraint
+class PBDStrainShape : public PBDFEMConstraint<sofa::defaulttype::Vec3Types>
 {
 public:
-    PBDStrainShape(sofa::simulation::Node* gnode = NULL):PBDFEMConstraint(){}
+    PBDStrainShape(sofa::simulation::Node* gnode = NULL):PBDFEMConstraint<sofa::defaulttype::Vec3Types>(){}
     /*
      * Inputs : PBDObject   -> Object on wich we will solve the constraint
      *          WriteCoord  -> Free positions on wich we apply the dispalcement
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject& object, WriteCoord& p) override;
+    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p) override;
 
     /*
      * Init function of sofa. It's called after the first init of the tree.

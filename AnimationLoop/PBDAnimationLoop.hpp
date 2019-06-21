@@ -6,7 +6,7 @@
 #include <SofaBaseMechanics/MechanicalObject.h>
 #include <sofa/core/behavior/ForceField.h>
 #include "../Solver/PBDExplicitIntegrator.hpp"
-#include "../Object/PBDObject.hpp"
+#include "../InternalData/PBDObject.hpp"
 #include "../Constraint/PBDBaseConstraint.hpp"
 
 #include <sofa/simulation/PropagateEventVisitor.h>
@@ -22,13 +22,11 @@ class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
     typedef sofa::defaulttype::Vec3Types::Coord       Coord;
     typedef sofa::helper::vector<Coord>               VecCoord;
     typedef sofa::core::objectmodel::Data<VecCoord>   Coordinates;
-    typedef sofa::helper::ReadAccessor  <Coordinates> ReadCoord;
     typedef sofa::helper::WriteAccessor <Coordinates> WriteCoord;
 
     typedef sofa::defaulttype::Vec3Types::Deriv       Deriv;
     typedef sofa::helper::vector<Deriv>               VecDeriv;
     typedef sofa::core::objectmodel::Data<VecDeriv>   Derivatives;
-    typedef sofa::helper::ReadAccessor  <Derivatives> ReadDeriv;
     typedef sofa::helper::WriteAccessor <Derivatives> WriteDeriv;
 
     //Eigen
@@ -86,10 +84,12 @@ protected :
     sofa::simulation::Node* gnode; ///< the node controlled by the loop
 
     //Solvers
-    PBDExplicitIntegrator m_integrator;
+    PBDExplicitIntegrator<sofa::defaulttype::Vec3Types> m_integrator_v;
+    PBDExplicitIntegrator<sofa::defaulttype::RigidTypes> m_integrator_r;
 
     //Datas and transformations
-    std::vector<PBDObject> m_objects;
+    std::vector<PBDObject<sofa::defaulttype::Vec3Types>> m_objects_v;
+    std::vector<PBDObject<sofa::defaulttype::RigidTypes>> m_objects_r;
 
     sofa::core::objectmodel::Data<int> m_nbIter;
 

@@ -4,8 +4,11 @@
 #include "../PBDBaseConstraintData.hpp"
 typedef std::vector<std::vector<std::pair<uint,SReal>>> VertexTopologyData;
 
-class PBDVertexTopology : public PBDBaseConstraintData
+template <class T>
+class PBDVertexTopology : public PBDBaseConstraintData<T>
 {
+    typedef sofa::component::container::MechanicalObject< T > Mech;
+    typedef sofa::core::topology::BaseMeshTopology  Topo;
 public:
     PBDVertexTopology(Mech * m = nullptr, Topo* t = nullptr);
     /*
@@ -24,6 +27,7 @@ private:
     VertexTopologyData m_data;
 };
 
-typedef PBDVertexTopology VertexTopology;
+template class PBDVertexTopology<sofa::defaulttype::Vec3Types>;
+template class PBDVertexTopology<sofa::defaulttype::RigidTypes>;
 
 #endif // PBDVERTEXTOPOLOGY_HPP

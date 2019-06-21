@@ -8,8 +8,10 @@ typedef std::vector<std::vector<std::pair<float,float>>> TriangleAreaData;
  * This class compute and store the data needed to solve (for the moment) the bending constraint described int this paper
  * https://cims.nyu.edu/gcl/papers/bergou2006qbm.pdf
  */
-class PBDTriangleAreaTopology : public PBDBaseConstraintData
+
+class PBDTriangleAreaTopology : public PBDBaseConstraintData<sofa::defaulttype::Vec3Types>
 {
+
 public:
     PBDTriangleAreaTopology(Mech * m = nullptr, Topo* t = nullptr);
     /*
@@ -36,6 +38,5 @@ private:
     TriangleAreaData m_data;
 };
 
-typedef PBDTriangleAreaTopology TriangleAreaTopology;
 
 #endif // PBDTriangleAreaTOPOLOGY_HPP

@@ -1,19 +1,21 @@
 #include "PBDVertexTopology.hpp"
 
-PBDVertexTopology::PBDVertexTopology(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
+template <class T>
+PBDVertexTopology<T>::PBDVertexTopology(Mech * m, Topo * t) : PBDBaseConstraintData<T> (m,t)
 {
     if( m && t )
         init ();
 }
 
-void PBDVertexTopology::init()
+template <class T>
+void PBDVertexTopology<T>::init()
 {
-    const auto& rest = m_mechanicalObject->readRestPositions ();
+    const auto& rest = PBDBaseConstraintData<T>::m_mechanicalObject->readRestPositions ();
     //Compute the vertice oriented topology
     for(uint i = 0; i < rest.size(); ++i)
     {
         //Get the neighbors of point I
-        const auto& neighbors = m_sofa_topology->getVerticesAroundVertex (i);
+        const auto& neighbors = PBDBaseConstraintData<T>::m_sofa_topology->getVerticesAroundVertex (i);
         std::vector<std::pair<uint,SReal>> neighborhood;
         for(uint j = 0; j < neighbors.size(); ++j)
         {
@@ -27,9 +29,11 @@ void PBDVertexTopology::init()
     }
 }
 
-void PBDVertexTopology::update()
+
+template <class T>
+void PBDVertexTopology<T>::update()
 {
     m_data.clear ();
-    if( m_mechanicalObject && m_sofa_topology )
+    if( PBDBaseConstraintData<T>::m_mechanicalObject && PBDBaseConstraintData<T>::m_sofa_topology )
         init ();
 }

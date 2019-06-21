@@ -3,21 +3,22 @@
 
 #include <sofa/core/objectmodel/BaseObject.h>
 #include <sofa/core/objectmodel/Data.h>
-#include "../Object/PBDObject.hpp"
+#include "../InternalData/PBDObject.hpp"
 
+template < class T >
 class SOFA_CORE_API PBDBaseConstraint : public virtual sofa::core::objectmodel::BaseObject
 {
 
 public:
     SOFA_ABSTRACT_CLASS(PBDBaseConstraint, sofa::core::objectmodel::BaseObject);
     //SOFA_BASE_CAST_IMPLEMENTATION(PBDBaseConstraint)
-    typedef sofa::defaulttype::Vec3Types::Coord       Coord;
+    typedef typename T::Coord       Coord;
     typedef sofa::helper::vector<Coord>               VecCoord;
     typedef sofa::core::objectmodel::Data<VecCoord>   Coordinates;
     typedef sofa::helper::ReadAccessor  <Coordinates> ReadCoord;
     typedef sofa::helper::WriteAccessor <Coordinates> WriteCoord;
 
-    typedef sofa::defaulttype::Vec3Types::Deriv       Deriv;
+    typedef typename T::Deriv       Deriv;
     typedef sofa::helper::vector<Deriv>               VecDeriv;
     typedef sofa::core::objectmodel::Data<VecDeriv>   Derivatives;
     typedef sofa::helper::ReadAccessor  <Derivatives> ReadDeriv;
@@ -39,7 +40,7 @@ public:
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject& object, WriteCoord& p) = 0;
+    virtual void solve(PBDObject<T>& object, WriteCoord& p) = 0;
 
     /*
      * Inputs : int -> Number of iterations

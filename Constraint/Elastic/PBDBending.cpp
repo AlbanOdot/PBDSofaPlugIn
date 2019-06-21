@@ -12,11 +12,11 @@ void PBDBending::bwdInit ()
     coeff = m_K * node->getDt () * node->getDt ();
 }
 
-void PBDBending::solve(PBDObject &object, WriteCoord &x)
+void PBDBending::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoord &x)
 {
-    if( !object.hasDataType (PBDObject::BENDING) || !object.hasDataType (PBDObject::STRETCH) )
+    if( !object.hasDataType (PBDObject<sofa::defaulttype::Vec3Types>::BENDING) || !object.hasDataType (PBDObject<sofa::defaulttype::Vec3Types>::STRETCH) )
     {
-        if( !object.hasDataType (PBDObject::STRETCH) )
+        if( !object.hasDataType (PBDObject<sofa::defaulttype::Vec3Types>::STRETCH) )
             object.computeStretchTopology ();
         object.computeBendingTopology ();
     }
@@ -54,7 +54,7 @@ void PBDBending::solve(PBDObject &object, WriteCoord &x)
 }
 
 
-void PBDBending::correction (PBDObject &object, uint a, uint b, WriteCoord &x, const ReadDeriv& vel)
+void PBDBending::correction (PBDObject<sofa::defaulttype::Vec3Types> &object, uint a, uint b, WriteCoord &x, const ReadDeriv& vel)
 {
     uint edge_ID = object.sofaTopology ()->getEdgeIndex(a,b);
     const auto& hessian_and_idx = object.bendTopology ().bendingData ()[edge_ID];

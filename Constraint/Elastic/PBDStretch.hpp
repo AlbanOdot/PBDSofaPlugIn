@@ -16,7 +16,7 @@ public:
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject& object, WriteCoord& p);
+    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p);
 
     /*
      * Init function of sofa. It's called after the first init of the tree.

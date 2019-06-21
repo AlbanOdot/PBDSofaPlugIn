@@ -2,16 +2,13 @@
 #include <sofa/core/ObjectFactory.h>
 
 int PBDFixedPointClass = sofa::core::RegisterObject("Constraint that fixe a point.")
-                            .add< PBDFixedPoint >();
+                         .add< PBDFixedPoint<sofa::defaulttype::Vec3Types> >(true)
+                         .add < PBDFixedPoint<sofa::defaulttype::Rigid3Types>>();
 
-PBDFixedPoint::PBDFixedPoint(unsigned int objectSize) : PBDBaseConstraint()
+template < class T>
+void PBDFixedPoint<T>::solve(PBDObject<T> &object, WriteCoord &p)
 {
-}
-
-
-void PBDFixedPoint::solve(PBDObject &object, WriteCoord &p)
-{
-    for(const auto& idx : m_indices.getValue ())
+    for(const auto& idx : PBDBaseConstraint<T>::m_indices.getValue ())
     {
         p[idx] = object.rest()[idx];
     }

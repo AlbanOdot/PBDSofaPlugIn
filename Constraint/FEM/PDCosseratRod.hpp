@@ -22,7 +22,7 @@ public:
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject& object, WriteCoord& p) override;
+    virtual void solve(PBDObject<sofa::defaulttype::Rigid3Types>& object, WriteCoord& p) override;
 
     /*
      * Init function of sofa. It's called after the first init of the tree.
@@ -31,9 +31,9 @@ public:
 
     /*
      * Inputs : ElasticRodData          -> Data structure representing the rod informations
-     *          vector<Quaternionr>     -> Free orientation
+     *          vector<Quaternion>     -> Free orientation
      *          vector<Vector3r>        -> Displacement
-     *          vector<Quaternionr>     -> Rotation correction
+     *          vector<Quaternion>     -> Rotation correction
      *          PBDObject               -> Object on wich we will solve the constraint
      *          WriteCoord              -> Free positions on wich we apply the dispalcement
      *          uint                    -> index of the segment
@@ -41,10 +41,10 @@ public:
      * Output : Compute and apply the correction
      */
     static void solveLinearSystem( PDCosseratRodData& cRod,
-                                   std::vector<Quaternionr>& u,
+                                   std::vector<Quaternion>& u,
                                    std::vector<vec3> dx,
-                                   std::vector<Quaternionr> dq,
-                                   PBDObject& object,
+                                   std::vector<Quaternion> dq,
+                                   PBDObject<sofa::defaulttype::Rigid3Types>& object,
                                    WriteCoord& p,
                                    const uint e);
 
@@ -60,7 +60,7 @@ public:
 
 private:
     std::vector<vec3> m_dx;
-    std::vector<Quaternionr> m_dq;
+    std::vector<Quaternion> m_dq;
 };
 
 

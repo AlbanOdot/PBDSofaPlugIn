@@ -10,8 +10,9 @@ typedef std::vector<std::vector<std::pair<uint[2],Eigen::Matrix4d>>> BendingTopo
  * This class compute and store the data needed to solve the bending constraint described int this paper
  * https://cims.nyu.edu/gcl/papers/bergou2006qbm.pdf
  */
-class PBDBendingTopology : public PBDBaseConstraintData
+class PBDBendingTopology : public PBDBaseConstraintData<sofa::defaulttype::Vec3Types>
 {
+
 public:
     PBDBendingTopology(Mech * m = nullptr, Topo* t = nullptr);
     /*
@@ -40,9 +41,8 @@ private:
     inline  void computeQ(const sofa::defaulttype::Vec3 *x[], Eigen::Matrix4d &Q,uint i, uint n);
 
     BendingTopologyData m_bending_topology;
-    TriangleAreaTopology m_triangle_rest_area;
+    PBDTriangleAreaTopology m_triangle_rest_area;
 };
 
-typedef PBDBendingTopology BendingTopology;
 
 #endif // PBDBendingTOPOLOGY_HPP

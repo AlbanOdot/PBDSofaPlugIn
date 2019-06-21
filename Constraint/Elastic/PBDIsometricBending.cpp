@@ -5,12 +5,12 @@
 int PBDIsometricBendingClass = sofa::core::RegisterObject("Constraint that correct the bending.")
                                .add< PBDIsometricBending >();
 
-void PBDIsometricBending::solve(PBDObject &object, WriteCoord &x)
+void PBDIsometricBending::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoord &x)
 {
 
-    if( !object.hasDataType(PBDObject::BENDING) || !object.hasDataType (PBDObject::STRETCH) )
+    if( !object.hasDataType(PBDObject<sofa::defaulttype::Vec3Types>::BENDING) || !object.hasDataType (PBDObject<sofa::defaulttype::Vec3Types>::STRETCH) )
     {
-        if( !object.hasDataType(PBDObject::STRETCH) )
+        if( !object.hasDataType(PBDObject<sofa::defaulttype::Vec3Types>::STRETCH) )
             object.computeStretchTopology ();
         object.computeBendingTopology ();
     }

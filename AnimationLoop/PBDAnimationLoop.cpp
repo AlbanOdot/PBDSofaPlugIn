@@ -26,7 +26,7 @@
 #include <omp.h>
 
 
-
+template class SOFA_CORE_API sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::RigidCoord<3,SReal>>>>;
 
 
 using namespace sofa::component::container;
@@ -67,12 +67,18 @@ void PBDAnimationLoop::bwdInit ()
     //On récupère les topologies
     auto topologies = m_context->getObjects<sofa::core::topology::BaseMeshTopology>(BaseContext::SearchDown);
     auto mechanicalObjects = m_context->getObjects< MechanicalObject< sofa::defaulttype::Vec3Types > >(BaseContext::SearchDown);
-    m_integrator.setUpIntegrator(gnode,m_nbIter.getValue ());
+    m_integrator_v.setUpIntegrator(gnode,m_nbIter.getValue ());
     for(uint i = 0; i < mechanicalObjects.size (); ++i)
     {
-        m_objects.emplace_back(PBDObject(mechanicalObjects[i],topologies[i]));
+        m_objects_v.emplace_back(PBDObject<sofa::defaulttype::Vec3Types>(mechanicalObjects[i],topologies[i]));
     }
 
+    auto mechanicalObjects_r = m_context->getObjects< MechanicalObject< sofa::defaulttype::RigidTypes > >(BaseContext::SearchDown);
+    m_integrator_r.setUpIntegrator(gnode,m_nbIter.getValue ());
+    for(uint i = 0; i < mechanicalObjects_r.size (); ++i)
+    {
+        m_objects_r.emplace_back(PBDObject<sofa::defaulttype::RigidTypes>(mechanicalObjects_r[i],topologies[i]));
+    }
 }
 
 void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
@@ -103,10 +109,9 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
 
     //Solve PBDConstraints
     sofa::core::MechanicalParams mparams(*params);
-    static const Vec3 zero(0,0,0);
     const float inv_dt = 1.0/dt;
 
-    for(auto& object : m_objects)
+    for(auto& object : m_objects_v)
     {
         //Object parameters
         WriteCoord x = object.position();
@@ -117,14 +122,30 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         WriteCoord p = freeCoord;
 
         //Solve all of the constraints
-        m_integrator.solveConstraint(object,p);
-
-        //Apply torque and angular velocity
-        m_integrator.integrateAngularVelocity(object,dt);
+        m_integrator_v.solveConstraint(object,p);
 
         //Integrate using PBD method
-        m_integrator.updatePosAndVel(object,p,x,v,inv_dt);
+        m_integrator_v.updatePosAndVel(object,p,x,v,inv_dt);
+    }
 
+    for(auto& object_r : m_objects_r)
+    {
+
+        //Object parameters
+        auto x = object_r.position();
+        auto v = object_r.velocity();
+
+        //We will compute constrainst on p
+        auto p = x;
+
+        //Solve all of the constraints
+        m_integrator_r.solveConstraint(object_r,p);
+
+        //Apply torque and angular velocity
+        m_integrator_r.integrateAngularVelocity(object_r,dt);
+
+        //Integrate using PBD method
+        m_integrator_r.updatePosAndVel(object_r,p,x,v,inv_dt);
     }
 
     gnode->setTime ( startTime + dt );

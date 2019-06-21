@@ -3,7 +3,7 @@
 
 #include "PBDFEMConstraint.hpp"
 
-class PBDElasticRod : public PBDFEMConstraint
+class PBDElasticRod : public PBDFEMConstraint<sofa::defaulttype::Rigid3Types>
 {
     typedef sofa::defaulttype::Vec3 vec3;
 public:
@@ -17,7 +17,7 @@ public:
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject& object, WriteCoord& p) override;
+    virtual void solve(PBDObject<sofa::defaulttype::Rigid3Types>& object, WriteCoord& p) override;
 
     /*
      * Init function of sofa. It's called after the first init of the tree.
@@ -26,13 +26,13 @@ public:
 
     /*
      * Inputs : ElasticRodData          -> Data structure representing the rod informations
-     *          vector<Quaternionr>     -> Free orientation
+     *          vector<Quaternion>     -> Free orientation
      *          PBDObject   -> Object on wich we will solve the constraint
      *          WriteCoord  -> Free positions on wich we apply the dispalcement
      *
      * Output : Compute and apply the correction
      */
-    static void correction( ElasticRodData& eRod, std::vector<Quaternionr>& u, PBDObject& object, WriteCoord& p, const vec3& bending_twisting, const uint e);
+    static void correction( ElasticRodData& eRod, std::vector<Quaternion>& u, PBDObject<sofa::defaulttype::Rigid3Types>& object, WriteCoord& p, const vec3& bending_twisting, const uint e);
     /// Construction method called by ObjectFactory.
     template<class T>
     static typename T::SPtr create(T*, sofa::core::objectmodel::BaseContext* context, sofa::core::objectmodel::BaseObjectDescription* arg)

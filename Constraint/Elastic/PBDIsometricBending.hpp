@@ -16,7 +16,7 @@ public:
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject& object, WriteCoord& p);
+    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p);
 
     /// Construction method called by ObjectFactory.
     template<class T>
