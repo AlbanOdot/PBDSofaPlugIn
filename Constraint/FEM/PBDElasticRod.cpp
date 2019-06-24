@@ -75,27 +75,27 @@ void PBDElasticRod::correction( ElasticRodData& eRod, std::vector<Quaternion>& u
     p[a].getCenter () += invMass0 * gamma;
     p[z].getCenter () -= invMass1 * gamma;
 
-    if( eRod.wq(a) > 0.0 )
-    {
-        // Cs * q * e_3.conjugate (cheaper than quaternion product)
-        Quaternion dq0 = Quaternion(0.0, gamma[0], gamma[1], gamma[2]) * Quaternion(u[a][2], -u[a][1], u[a][0], -u[a][3]);
-        u[a] += dq0 * (static_cast<SReal>(2.0) * eRod.wq(e) * eRod.length(e));
-    }
+//    if( eRod.wq(a) > 0.0 )
+//    {
+//        // Cs * q * e_3.conjugate (cheaper than quaternion product)
+//        Quaternion dq0 = Quaternion(0.0, gamma[0], gamma[1], gamma[2]) * Quaternion(u[a][2], -u[a][1], u[a][0], -u[a][3]);
+//        u[a] += dq0 * (static_cast<SReal>(2.0) * eRod.wq(e) * eRod.length(e));
+//    }
 
-    // COMPUTE BENDING AND TWISTING
-    Quaternion omega    = u[a].inverse ()* u[z];   //darboux vector
-    Quaternion omega_plus;
-    omega_plus = omega + object.orientation().restDarboux(a); //delta Omega with + Omega_0
-    omega = omega + (object.orientation().restDarboux(a) * -1); //delta Omega with - Omega_0
+////    // COMPUTE BENDING AND TWISTING
+////    Quaternion omega    = u[a].inverse ()* u[z];   //darboux vector
+////    Quaternion omega_plus;
+////    omega_plus = omega + object.orientation().restDarboux(a); //delta Omega with + Omega_0
+////    omega = omega + (object.orientation().restDarboux(a) * -1); //delta Omega with - Omega_0
 
-    if (squaredNorm(omega) > squaredNorm (omega_plus))
-        omega = omega_plus;
+////    if (squaredNorm(omega) > squaredNorm (omega_plus))
+////        omega = omega_plus;
 
-    for (uint i = 0; i < 3; i++)
-        omega[i] *= bending_twisting[i] / (eRod.wq(a) + eRod.wq(z) + eps);
-    omega[3] = 0.0;    //discrete Darboux vector does not have vanishing scalar part
+////    for (uint i = 0; i < 3; i++)
+////        omega[i] *= bending_twisting[i] / (eRod.wq(a) + eRod.wq(z) + eps);
+////    omega[3] = 0.0;    //discrete Darboux vector does not have vanishing scalar part
 
-    u[a] += (u[z] * omega) * eRod.wq(a);
-    u[z] += (u[a] * omega) * eRod.wq(z) * -1.0;
+////    u[a] += (u[z] * omega) * eRod.wq(a);
+////    u[z] += (u[a] * omega) * eRod.wq(z) * -1.0;
 
 }

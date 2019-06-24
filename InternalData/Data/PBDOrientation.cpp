@@ -14,9 +14,6 @@ void PBDOrientation::init()
     auto rigid = m_mechanicalObject->writePositions ();
     for(uint i = 0; i < rest.size () - 1; ++i)
     {
-        const auto& dir = rest[i+1] - rest[i];
-        rigid[i].getOrientation ().setFromUnitVectors(Vec3(0,0,1),dir.getCenter().normalized ());
-
         m_freeOrientation.emplace_back(rigid[i].getOrientation ());
         m_angularSpeed.emplace_back(Vec3(0,0,0));
         m_torque.emplace_back(Vec3(0,0,0));
