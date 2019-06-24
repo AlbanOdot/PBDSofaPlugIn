@@ -19,23 +19,13 @@
 
 class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
 {
-    typedef sofa::defaulttype::Vec3Types::Coord       Coord;
-    typedef sofa::helper::vector<Coord>               VecCoord;
-    typedef sofa::core::objectmodel::Data<VecCoord>   Coordinates;
+    typedef sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Vec3Types::Coord>> Coordinates;
+    typedef sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Rigid3Types::Coord>> RCoordinates;
     typedef sofa::helper::WriteAccessor <Coordinates> WriteCoord;
+    typedef sofa::helper::WriteAccessor <RCoordinates> RWriteCoord;
 
-    typedef sofa::defaulttype::Vec3Types::Deriv       Deriv;
-    typedef sofa::helper::vector<Deriv>               VecDeriv;
-    typedef sofa::core::objectmodel::Data<VecDeriv>   Derivatives;
-    typedef sofa::helper::WriteAccessor <Derivatives> WriteDeriv;
-
-    //Eigen
-    typedef Eigen::Vector3f Vec;
-    typedef Eigen::Vector4f Vec4;
-    typedef std::vector<Vec> VecList;
-    typedef std::vector<Vec4> Vec4List;
-    typedef Eigen::Matrix3f Mat;
-    typedef Eigen::Matrix4f Mat4;
+    typedef sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Rigid3Types::Deriv>>> RWriteDeriv;
+    typedef sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Vec3Types::Deriv>>> WriteDeriv;
 
 public:
     PBDAnimationLoop(sofa::simulation::Node* gnode = NULL);

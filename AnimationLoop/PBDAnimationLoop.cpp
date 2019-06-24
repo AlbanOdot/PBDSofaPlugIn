@@ -26,7 +26,7 @@
 #include <omp.h>
 
 
-template class SOFA_CORE_API sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::RigidCoord<3,SReal>>>>;
+template class SOFA_CORE_API sofa::helper::WriteAccessor<sofa::helper::vector<sofa::defaulttype::RigidCoord<3,SReal>>>;
 
 
 using namespace sofa::component::container;
@@ -46,7 +46,7 @@ int PBDAnimationLoopClass = sofa::core::RegisterObject("Simulation loop to use i
 PBDAnimationLoop::PBDAnimationLoop(sofa::simulation::Node* _gnode)
     :  Inherit(),
       gnode(_gnode),
-      m_nbIter(initData(&m_nbIter,(int)1,"iter","Number of iteration for the solver"))
+      m_nbIter(initData(&m_nbIter,1,"iter","Number of iteration for the solver"))
 {
 }
 
@@ -109,7 +109,7 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
 
     //Solve PBDConstraints
     sofa::core::MechanicalParams mparams(*params);
-    const float inv_dt = 1.0/dt;
+    const SReal inv_dt = 1.0/dt;
 
     for(auto& object : m_objects_v)
     {
@@ -119,7 +119,7 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
 
         //We will compute constrainst on p
         Coordinates freeCoord(x.ref());
-        WriteCoord p = freeCoord;
+        WriteCoord p(freeCoord);
 
         //Solve all of the constraints
         m_integrator_v.solveConstraint(object,p);
@@ -132,11 +132,12 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
     {
 
         //Object parameters
-        auto x = object_r.position();
-        auto v = object_r.velocity();
+        RWriteCoord x = object_r.position();
+        RWriteDeriv v = object_r.velocity();
 
         //We will compute constrainst on p
-        auto p = x;
+        RCoordinates freeCoord(x.ref ());
+        RWriteCoord p(freeCoord);
 
         //Solve all of the constraints
         m_integrator_r.solveConstraint(object_r,p);
