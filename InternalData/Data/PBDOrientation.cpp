@@ -1,7 +1,5 @@
 #include "./PBDOrientation.hpp"
-#include <sofa/defaulttype/RigidTypes.h>
 
-using namespace sofa::defaulttype;
 PBDOrientation::PBDOrientation(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
 {
     if( m && t )
@@ -11,29 +9,35 @@ PBDOrientation::PBDOrientation(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
 void PBDOrientation::init()
 {
     const auto& rest = m_mechanicalObject->readRestPositions ();
-    auto rigid = m_mechanicalObject->writePositions ();
     for(uint i = 0; i < rest.size () - 1; ++i)
     {
-        m_freeOrientation.emplace_back(rigid[i].getOrientation ());
-        m_angularSpeed.emplace_back(Vec3(0,0,0));
-        m_torque.emplace_back(Vec3(0,0,0));
-        m_inertia.emplace_back(Vec3(1,1,1));
+        const auto& dir = rest[i+1] - rest[i];
+        Quaternionr q;
+        q.setFromTwoVectors(Vector3r(0,0,1),Vector3r(dir[0],dir[1],dir[2]));
+        q.normalize ();
+        m_orientation.emplace_back(q);
+        m_freeOrientation.emplace_back(q);
+        m_angularSpeed.emplace_back(Eigen::Vector3d(0,0,0));
+        m_torque.emplace_back(Eigen::Vector3d(0,0,0));
+        m_inertia.emplace_back(Eigen::Vector3d(1,1,1));
     }
     //Last particle is set as the previous one.
+    m_orientation.emplace_back(m_orientation[m_orientation.size () - 1]);
     m_freeOrientation.emplace_back(m_freeOrientation[m_freeOrientation.size () - 1]);
-    m_angularSpeed.emplace_back(Vec3(0,0,0));
-    m_torque.emplace_back(Vec3(0,0,0));
-    m_inertia.emplace_back(Vec3(1,1,1));
+    m_angularSpeed.emplace_back(Eigen::Vector3d(0,0,0));
+    m_torque.emplace_back(Eigen::Vector3d(0,0,0));
+    m_inertia.emplace_back(Eigen::Vector3d(1,1,1));
 
     for(uint i = 0; i < rest.size(); ++i)
     {
         uint a = i+1 == rest.size() ? i : i+1;
-        m_restDarboux.emplace_back(rigid[i].getOrientation ().inverse () * rigid[a].getOrientation ());
+        m_restDarboux.emplace_back(m_orientation[i].conjugate () * m_orientation[a]);
     }
 }
 
 void PBDOrientation::update()
 {
+    m_orientation.clear ();
     m_freeOrientation.clear ();
     m_restDarboux.clear ();
     m_angularSpeed.clear ();
@@ -43,11 +47,11 @@ void PBDOrientation::update()
         init ();
 }
 
-void PBDOrientation::setAngularVelocity(const std::vector<Vec3> &as)
+void PBDOrientation::setAngularVelocity(const std::vector<Vector3r> &as)
 {
     if( as.size () == 0)
     {
-        const auto& s = Vec3(0,0,0);
+        const auto& s = Vector3r(0,0,0);
         for(auto& speed : m_angularSpeed)
         {
             speed = s;
@@ -66,11 +70,11 @@ void PBDOrientation::setAngularVelocity(const std::vector<Vec3> &as)
     }
 }
 
-void PBDOrientation::setTorque(const std::vector<Vec3> &as)
+void PBDOrientation::setTorque(const std::vector<Vector3r> &as)
 {
     if( as.size () == 0)
     {
-        const auto& s = Vec3(0,0,0);
+        const auto& s = Vector3r(0,0,0);
         for(auto& speed : m_torque)
         {
             speed = s;
@@ -89,11 +93,11 @@ void PBDOrientation::setTorque(const std::vector<Vec3> &as)
     }
 }
 
-void PBDOrientation::setInertia(const std::vector<Vec3> & as)
+void PBDOrientation::setInertia(const std::vector<Vector3r> & as)
 {
     if( as.size () == 0)
     {
-        const auto& s = Vec3(1,1,1);
+        const auto& s = Vector3r(1,1,1);
         for(auto& speed : m_inertia)
         {
             speed = s;

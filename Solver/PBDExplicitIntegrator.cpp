@@ -1,4 +1,4 @@
-/******************************************************************************
+﻿/******************************************************************************
 *       SOFA, Simulation Open-Framework Architecture, development version     *
 *                (c) 2006-2018 INRIA, USTL, UJF, CNRS, MGH                    *
 *                                                                             *
@@ -39,14 +39,26 @@ PBDExplicitIntegrator<T>::~PBDExplicitIntegrator ()
 {
 }
 
-inline sofa::defaulttype::Vec3 cwProduct(const sofa::defaulttype::Vec3& diagMat, const sofa::defaulttype::Vec3& vec)
+template <>
+void PBDExplicitIntegrator<sofa::defaulttype::RigidTypes>::integrateAngularVelocity(PBDObject<sofa::defaulttype::RigidTypes>& object,const SReal &dt)
 {
-    return sofa::defaulttype::Vec3(diagMat[0] * vec[0], diagMat[1] * vec[1], diagMat[2] * vec[2]);
+
+    auto& orientation = object.orientation ();
+    auto& omega = orientation.angularSpeed ();
+    auto& I = orientation.inertia ();
+    auto& tau = orientation.torque ();
+    auto& u = orientation.freeOrientation ();
+    for(uint j = 0; j < omega.size (); ++j)
+    {
+        omega[j] += dt*I[j].asDiagonal ().inverse ()*(tau[j] - omega[j].cross(I[j].asDiagonal ()*omega[j])).eval ();
+        u[j].coeffs() += 0.5*dt*(orientation.orientation (j)*Quaternionr(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
+        u[j].normalize ();
+    }
 }
 
-inline sofa::defaulttype::Vec3 inverseDiag(sofa::defaulttype::Vec3& diagMat)
+template < >
+void PBDExplicitIntegrator<sofa::defaulttype::Vec3Types>::integrateAngularVelocity(PBDObject<sofa::defaulttype::Vec3Types>& object,const SReal &dt)
 {
-    return sofa::defaulttype::Vec3(1.0/diagMat[0], 1.0 / diagMat[1], 1.0/diagMat[2]);
 }
 
 template < class T >
@@ -81,30 +93,31 @@ void PBDExplicitIntegrator<sofa::defaulttype::RigidTypes>::updatePosAndVel (PBDO
                                                                             WriteDeriv &v,
                                                                             const SReal &inv_dt)
 {
-
-    auto pointCount = v.ref().size();
     auto& orientation = object.orientation ();
     auto& omega = orientation.angularSpeed ();
-    auto& u = orientation.freeOrientation();
-    auto rigid = object.position ();
-    Quaternion q;
+    auto& u = orientation.freeOrientation ();
+    Eigen::Quaterniond n;
 
-    for(uint i = 0; i < pointCount; ++i)
+    for(uint i = 0; i < u.size (); ++i)
     {
-        v[i] = sofa::defaulttype::RigidTypes::coordDifference (p[i],x[i]) * inv_dt;//(p[i].coordDifference(x[i]) * inv_dt;
-        x[i] = p[i];
-        q = (rigid[i].getOrientation().inverse()*u[i])* 2.0*inv_dt;
-        omega[i][0] = q[0]; omega[i][1] = q[1];omega[i][1] = q[1];
-        rigid[i].getOrientation () = u[i];
+
+        v[i] = sofa::defaulttype::RigidTypes::coordDifference(p[i], x[i]) * inv_dt;
+        x[i].getCenter () = p[i].getCenter ();
+        x[i].getOrientation ().set(u[i].x (),u[i].y (),u[i].z (),u[i].w ());
+
+        n.coeffs () = 2.0*inv_dt*(orientation.orientation (i).conjugate()*u[i]).coeffs ();
+        omega[i] = n.vec ();
+
+        orientation.orientation (i) = u[i];
     }
 }
 
 template <>
 void PBDExplicitIntegrator<sofa::defaulttype::Vec3Types>::updatePosAndVel (PBDObject<sofa::defaulttype::Vec3Types>& object,
-                                                                            const WriteCoord &p,
-                                                                            WriteCoord &x,
-                                                                            WriteDeriv &v,
-                                                                            const SReal &inv_dt)
+                                                                           const WriteCoord &p,
+                                                                           WriteCoord &x,
+                                                                           WriteDeriv &v,
+                                                                           const SReal &inv_dt)
 {
 
     auto pointCount = v.ref().size();
@@ -147,25 +160,4 @@ void PBDExplicitIntegrator<T>::solveConstraint (PBDObject<T>& object, WriteCoord
 
 }
 
-template <>
-void PBDExplicitIntegrator<sofa::defaulttype::RigidTypes>::integrateAngularVelocity(PBDObject<sofa::defaulttype::RigidTypes>& object,const SReal &dt)
-{
 
-    auto& orientation = object.orientation ();
-    auto& omega = orientation.angularSpeed ();
-    auto& I = orientation.inertia ();
-    auto& tau = orientation.torque ();
-    auto& u = orientation.freeOrientation();
-    const auto& rigid = object.position ();
-    for(uint j = 0; j < omega.size (); ++j)
-    {
-        omega[j] += dt*cwProduct( inverseDiag(I[j]), tau[j] - omega[j].cross(cwProduct(I[j],omega[j])));
-        u[j] += (rigid[j].getOrientation () * Quaternion(0,omega[j][0],omega[j][1],omega[j][2])) * 0.5 * dt;
-        u[j].normalize ();
-    }
-}
-
-template < >
-void PBDExplicitIntegrator<sofa::defaulttype::Vec3Types>::integrateAngularVelocity(PBDObject<sofa::defaulttype::Vec3Types>& object,const SReal &dt)
-{
-}

@@ -32,7 +32,7 @@ public:
      *
      * Output : Compute and apply the correction
      */
-    static void correction( ElasticRodData& eRod, std::vector<Quaternion>& u, PBDObject<sofa::defaulttype::Rigid3Types>& object, WriteCoord& p, const vec3& bending_twisting, const uint e);
+    static void correction( ElasticRodData& eRod, std::vector<Quaternionr>& u, PBDObject<sofa::defaulttype::Rigid3Types>& object, WriteCoord& p, const vec3& bending_twisting, const uint e);
     /// Construction method called by ObjectFactory.
     template<class T>
     static typename T::SPtr create(T*, sofa::core::objectmodel::BaseContext* context, sofa::core::objectmodel::BaseObjectDescription* arg)

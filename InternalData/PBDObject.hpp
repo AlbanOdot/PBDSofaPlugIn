@@ -56,12 +56,7 @@ public:
     void computeOrientation();
     void computeStiffRod();
     void computeCosseratRod();
-    /*
-     * Inputs : vector<Vec3>    -> Initial velocity
-     *
-     * Output : Set the angular velocities according to the input. If void will init all velocities to (0,0,0)
-     */
-    void setupAngularVelocity(const std::vector<Vec3>&);
+
 
     //PBDDatatype accessors
     inline       VertexMassData& mass()                                                                             {return m_mass.m();}

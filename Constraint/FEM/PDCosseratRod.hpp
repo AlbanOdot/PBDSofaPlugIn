@@ -31,9 +31,9 @@ public:
 
     /*
      * Inputs : ElasticRodData          -> Data structure representing the rod informations
-     *          vector<Quaternion>     -> Free orientation
+     *          vector<Quaternionr>     -> Free orientation
      *          vector<Vector3r>        -> Displacement
-     *          vector<Quaternion>     -> Rotation correction
+     *          vector<Quaternionr>     -> Rotation correction
      *          PBDObject               -> Object on wich we will solve the constraint
      *          WriteCoord              -> Free positions on wich we apply the dispalcement
      *          uint                    -> index of the segment
@@ -41,10 +41,10 @@ public:
      * Output : Compute and apply the correction
      */
     static void solveLinearSystem( PDCosseratRodData& cRod,
-                                   std::vector<Quaternion>& u,
+                                   std::vector<Quaternionr>& u,
                                    std::vector<vec3> dx,
-                                   std::vector<Quaternion> dq,
-                                   PBDObject<sofa::defaulttype::Rigid3Types>& object,
+                                   std::vector<Quaternionr> dq,
+                                   PBDObject<sofa::defaulttype::RigidTypes>& object,
                                    WriteCoord& p,
                                    const uint e);
 
@@ -60,7 +60,7 @@ public:
 
 private:
     std::vector<vec3> m_dx;
-    std::vector<Quaternion> m_dq;
+    std::vector<Quaternionr> m_dq;
 };
 
 

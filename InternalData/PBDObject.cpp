@@ -82,12 +82,6 @@ void PBDObject<sofa::defaulttype::RigidTypes>::computeStiffRod()
         m_integration_type |= NORMAL;
 }
 
-template <  >
-void PBDObject<sofa::defaulttype::RigidTypes>::setupAngularVelocity(const std::vector<Vec3>& as)
-{
-    if(m_dataType & ORIENTED)
-        m_orientation.setAngularVelocity(as);
-}
 
 template < >
 void PBDObject<sofa::defaulttype::RigidTypes>::computeCosseratRod()
