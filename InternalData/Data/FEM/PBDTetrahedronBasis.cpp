@@ -15,14 +15,16 @@ void PBDTetrahedronBasis::init()
     for(uint i = 0; i < tetrahedra.size(); ++i)
     {
         const auto& x = tetrahedra[i];
-        const auto& r1 = rest[x[0]] - rest[x[3]];
-        const auto& r2 = rest[x[1]] - rest[x[3]];
-        const auto& r3 = rest[x[2]] - rest[x[3]];
-        Eigen::Matrix3d Dm; Dm << r1[0],r1[1],r1[2],
-                                  r2[0],r2[1],r2[2],
-                                  r3[0],r3[1],r3[2];
-        //We take 0.5 since the tetrahedron volume is half the det
-        m_data[i] = std::pair<float,Eigen::Matrix3d>(0.5*Dm.determinant(),Dm.inverse());
+        const auto& p0 = rest[x[0]];
+        const auto& p1 = rest[x[1]];
+        const auto& p2 = rest[x[2]];
+        const auto& p3 = rest[x[3]];
+        Matrix3 Dm;
+        Dm.x() = p0 - p3;
+        Dm.y() = p1 - p3;
+        Dm.z() = p2 - p3;
+
+        m_data[i] = std::pair<float,Matrix3>(0.5*determinant(Dm),Dm.inverted ());
     }
 }
 

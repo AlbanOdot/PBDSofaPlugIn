@@ -29,6 +29,16 @@ public:
      */
     virtual void bwdInit () override;
 
+    static void computeGreenStrainAndPiolaStressInversion(const Matrix3 &F,
+            const Real restVolume,
+            const Real mu, const Real lambda, Matrix3 &epsilon, Matrix3 &sigma, Real &energy);
+
+    static void computeGreenStrainAndPiolaStress(const Matrix3 &F,
+            const Real restVolume,
+            const Real mu, const Real lambda, Matrix3 &epsilon, Matrix3 &sigma, Real &energy);
+
+    static void computeGradCGreen(Real restVolume, const Matrix3 &invRestMat, const Matrix3 &sigma, Vec3 *J);
+
     /// Construction method called by ObjectFactory.
     template<class T>
     static typename T::SPtr create(T*, sofa::core::objectmodel::BaseContext* context, sofa::core::objectmodel::BaseObjectDescription* arg)
@@ -38,6 +48,10 @@ public:
         if (arg) obj->parse(arg);
         return obj;
     }
+
+protected:
+    SReal m_lambda;
+    SReal m_mu;
 };
 
 #endif // PBDSTRAINSHAPE_HPP

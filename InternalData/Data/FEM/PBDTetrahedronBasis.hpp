@@ -3,10 +3,13 @@
 
 #include "../PBDBaseConstraintData.hpp"
 
-typedef std::vector<std::pair<float,Eigen::Matrix3d>> TetrahedronBasisData;
+
 
 class PBDTetrahedronBasis : public PBDBaseConstraintData<sofa::defaulttype::Vec3Types>
 {
+    typedef sofa::defaulttype::Vec3 Vec3;
+    typedef sofa::defaulttype::Matrix3 Matrix3;
+    typedef std::vector<std::pair<SReal,Matrix3>> TetrahedronBasisData;
 public:
     PBDTetrahedronBasis(Mech * m = nullptr, Topo* t = nullptr);
     /*

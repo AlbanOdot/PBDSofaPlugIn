@@ -5,24 +5,6 @@
 int PDCosseratRodClass = sofa::core::RegisterObject("Constraint that correct elastic rod.")
                          .add< PDCosseratRod >();
 
-typedef sofa::defaulttype::Vec3 V3;
-
-void PDCosseratRod::bwdInit ()
-{
-
-    auto node = dynamic_cast<sofa::simulation::Node*>(this->getContext());
-    dt2 = node->getDt () * node->getDt ();
-    SReal nu = m_poisson_ratio.getValue ();
-    SReal E = m_young_modulus.getValue ();
-    SReal mu = E / (2.0 * ( 1.0 + nu ));
-    SReal d = m_radius.getValue ();
-    SReal I = 0.25*M_PI*d*d*d*d;
-    //This constant is here to make the unit of the scene in GPa -> 193 GPA = stainless steel
-    m_bendingAndTwistingKs = vec3(I*E,I*E,I*(2.0*mu));
-    m_bendingAndTwistingKs /= m_nbIter.getValue ();
-}
-
-
 void PDCosseratRod::solve(PBDObject<sofa::defaulttype::RigidTypes> &object, WriteCoord &p)
 {
 
@@ -47,9 +29,10 @@ void PDCosseratRod::solve(PBDObject<sofa::defaulttype::RigidTypes> &object, Writ
 
     auto& cRod = object.cosseratRod ();
     auto& u    = object.orientation ().freeOrientation ();
-
+    const uint nbElem = cRod.wq().size ();
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
+        //Compute first
         uint a = cRod.beginIdx (0);
         uint z = cRod.endIdx(0);
         m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
@@ -59,7 +42,8 @@ void PDCosseratRod::solve(PBDObject<sofa::defaulttype::RigidTypes> &object, Writ
         //Ligne 10
         solveLinearSystem(cRod,u,m_dx,m_dq,object,p,0);
 
-        for(uint e = 1; e < cRod.wq().size (); ++e )
+        //Compute the current one and integrate the previous one
+        for(uint e = 1; e < nbElem; ++e )
         {
             uint a = cRod.beginIdx (e);
             uint z = cRod.endIdx(e);
@@ -74,7 +58,9 @@ void PDCosseratRod::solve(PBDObject<sofa::defaulttype::RigidTypes> &object, Writ
             u[e].coeffs () += m_dq[e-1].coeffs ();
         }
 
-        u[u.size ()-1] = u[u.size()-2];
+        //integrate the last one
+        p[nbElem - 1 ].getCenter () += m_dx[nbElem - 1];
+        u[nbElem - 1].coeffs () += m_dq[nbElem - 1].coeffs ();
     }
 }
 
@@ -88,16 +74,15 @@ void PDCosseratRod::solveLinearSystem( PDCosseratRodData& cRod,
                                        const uint e)
 {
 
-    uint a = cRod.beginIdx (e);
-    uint z = cRod.endIdx(e);
+    const uint a = cRod.beginIdx (e);
+    const uint z = cRod.endIdx(e);
     const SReal invMass1 = object.invMass(a);
     const SReal invMass0 = object.invMass(z);
 
     //  COMPUTE STRETCHING AND SHEARING
-    vec3 d3;
-    d3[0] = static_cast<SReal>(2.0) * (u[a].x() * u[a].z() + u[a].w() * u[a].y());
-    d3[1] = static_cast<SReal>(2.0) * (u[a].y() * u[a].z() - u[a].w() * u[a].x());
-    d3[2] = u[a].w() * u[a].w() - u[a].x() * u[a].x() - u[a].y() * u[a].y() + u[a].z() * u[a].z();	//third director d3 = q0 * e_3 * q0_conjugate
+    vec3 d3(static_cast<SReal>(2.0) * (u[a].x() * u[a].z() + u[a].w() * u[a].y()),
+            static_cast<SReal>(2.0) * (u[a].y() * u[a].z() - u[a].w() * u[a].x()),
+            u[a].w() * u[a].w() - u[a].x() * u[a].x() - u[a].y() * u[a].y() + u[a].z() * u[a].z());	//third director d3 = q0 * e_3 * q0_conjugate
 
     vec3 gamma = (p[z].getCenter ()- p[a].getCenter ()) / cRod.length(e) - d3;
     dx[a] += (invMass0 * cRod.ws(a) + 1e-6) * gamma;

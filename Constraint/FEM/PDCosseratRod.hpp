@@ -25,11 +25,6 @@ public:
     virtual void solve(PBDObject<sofa::defaulttype::Rigid3Types>& object, WriteCoord& p) override;
 
     /*
-     * Init function of sofa. It's called after the first init of the tree.
-     */
-    virtual void bwdInit () override;
-
-    /*
      * Inputs : ElasticRodData          -> Data structure representing the rod informations
      *          vector<Quaternionr>     -> Free orientation
      *          vector<Vector3r>        -> Displacement

@@ -2,7 +2,7 @@
 #define PBDSTRAINDYNAMIC_HPP
 
 
-#include "PBDFEMConstraint.hpp"
+#include "PBDStrainShape.hpp"
 #include <SofaBaseLinearSolver/FullMatrix.h>
 #include <sofa/core/objectmodel/BaseContext.h>
 #include <sofa/simulation/Node.h>
@@ -12,10 +12,11 @@
  *  This class implement http://matthias-mueller-fischer.ch/publications/strainBasedDynamics.pdf
 */
 
-class PBDStrainDynamic : public PBDFEMConstraint<sofa::defaulttype::Vec3Types>
+class PBDStrainDynamic : public PBDStrainShape
 {
+
 public:
-    PBDStrainDynamic(sofa::simulation::Node* gnode = NULL):PBDFEMConstraint<sofa::defaulttype::Vec3Types>(){}
+    PBDStrainDynamic(sofa::simulation::Node* gnode = NULL):PBDStrainShape(){}
     /*
      * Inputs : PBDObject   -> Object on wich we will solve the constraint
      *          WriteCoord  -> Free positions on wich we apply the dispalcement
@@ -23,11 +24,6 @@ public:
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
     virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p) override;
-
-    /*
-     * Init function of sofa. It's called after the first init of the tree.
-     */
-    virtual void bwdInit () override;
 
     /// Construction method called by ObjectFactory.
     template<class T>

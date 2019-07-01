@@ -19,48 +19,44 @@
  **/
 class MathFunctions
 {
+    typedef sofa::defaulttype::Matrix3 Matrix3;
+    typedef sofa::defaulttype::Vec3 Vec3;
 private:
-    static void jacobiRotate(Matrix3r &A,
-                             Matrix3r &R,
+    static void jacobiRotate(Matrix3 &A,
+                             Matrix3 &R,
                              int p,
                              int q);
 
 public:
-    static Real infNorm(const Matrix3r &A);
-    static Real oneNorm(const Matrix3r &A);
+    static Real infNorm(const Matrix3 &A);
+    static Real oneNorm(const Matrix3 &A);
 
-    static void eigenDecomposition(const Matrix3r &A,
-                                   Matrix3r &eigenVecs,
-                                   Vector3r &eigenVals);
+    static void eigenDecomposition(const Matrix3 &A,
+                                   Matrix3 &eigenVecs,
+                                   Vec3 &eigenVals);
 
-    static void polarDecomposition(const Matrix3r &A,
-                                   Matrix3r &R,
-                                   Matrix3r &U,
-                                   Matrix3r &D);
+    static void polarDecomposition(const Matrix3 &A,
+                                   Matrix3 &R,
+                                   Matrix3 &U,
+                                   Matrix3 &D);
 
-    static void polarDecompositionStable(const Matrix3r &M,
+    static void polarDecompositionStable(const Matrix3 &M,
                                          const Real tolerance,
-                                         Matrix3r &R);
+                                         Matrix3 &R);
 
-    static void svdWithInversionHandling(const Matrix3r &A,
-                                         Vector3r &sigma,
-                                         Matrix3r &U,
-                                         Matrix3r &VT);
+    static void svdWithInversionHandling(const Matrix3 &A,
+                                         Vec3 &sigma,
+                                         Matrix3 &U,
+                                         Matrix3 &VT);
 
-    static Real cotTheta(const Vector3r &v, const Vector3r &w);
-
-    /** Computes the cross product matrix of a vector.
-         * @param  v		input vector
-         * @param  v_hat	resulting cross product matrix
-         */
-    static void crossProductMatrix(const Vector3r &v, Matrix3r &v_hat);
+    static Real cotTheta(const Vec3 &v, const Vec3 &w);
 
     /** Implementation of the paper: \n
          * Matthias Müller, Jan Bender, Nuttapong Chentanez and Miles Macklin,
          * "A Robust Method to Extract the Rotational Part of Deformations",
          * ACM SIGGRAPH Motion in Games, 2016
          */
-    static void extractRotation(const Matrix3r &A, Quaternionr &q, const unsigned int maxIter);
+    static void extractRotation(const Matrix3 &A, Quaternion &q, const unsigned int maxIter);
 };
 
 

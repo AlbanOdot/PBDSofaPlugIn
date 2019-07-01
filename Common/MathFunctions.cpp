@@ -6,7 +6,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 // ----------------------------------------------------------------------------------------------
-void MathFunctions::jacobiRotate(Matrix3r &A, Matrix3r &R, int p, int q)
+void MathFunctions::jacobiRotate(Matrix3 &A, Matrix3 &R, int p, int q)
 {
     // rotates A through phi in pq-plane to set A(p,q) = 0
     // rotation stored in R whose columns are eigenvectors of A
@@ -41,15 +41,15 @@ void MathFunctions::jacobiRotate(Matrix3r &A, Matrix3r &R, int p, int q)
 }
 
 // ----------------------------------------------------------------------------------------------
-void MathFunctions::eigenDecomposition(const Matrix3r &A, Matrix3r &eigenVecs, Vector3r &eigenVals)
+void MathFunctions::eigenDecomposition(const Matrix3 &A, Matrix3 &eigenVecs, Vec3 &eigenVals)
 {
     const int numJacobiIterations = 10;
     const Real epsilon = static_cast<Real>(1e-15);
 
-    Matrix3r D = A;
+    Matrix3 D = A;
 
     // only for symmetric matrices!
-    eigenVecs.setIdentity();	// unit matrix
+    eigenVecs.identity ();	// unit matrix
     int iter = 0;
     while (iter < numJacobiIterations) {	// 3 off diagonal elements
         // find off diagonal element with maximum modulus
@@ -74,14 +74,14 @@ void MathFunctions::eigenDecomposition(const Matrix3r &A, Matrix3r &eigenVecs, V
 
 /** Perform polar decomposition A = (U D U^T) R
 */
-void MathFunctions::polarDecomposition(const Matrix3r &A, Matrix3r &R, Matrix3r &U, Matrix3r &D)
+void MathFunctions::polarDecomposition(const Matrix3 &A, Matrix3 &R, Matrix3 &U, Matrix3 &D)
 {
     // A = SR, where S is symmetric and R is orthonormal
     // -> S = (A A^T)^(1/2)
 
     // A = U D U^T R
 
-    Matrix3r AAT;
+    Matrix3 AAT;
     AAT(0, 0) = A(0, 0)*A(0, 0) + A(0, 1)*A(0, 1) + A(0, 2)*A(0, 2);
     AAT(1, 1) = A(1, 0)*A(1, 0) + A(1, 1)*A(1, 1) + A(1, 2)*A(1, 2);
     AAT(2, 2) = A(2, 0)*A(2, 0) + A(2, 1)*A(2, 1) + A(2, 2)*A(2, 2);
@@ -94,14 +94,14 @@ void MathFunctions::polarDecomposition(const Matrix3r &A, Matrix3r &R, Matrix3r 
     AAT(2, 0) = AAT(0, 2);
     AAT(2, 1) = AAT(1, 2);
 
-    R.setIdentity();
-    Vector3r eigenVals;
+    R.identity ();
+    Vec3 eigenVals;
     eigenDecomposition(AAT, U, eigenVals);
 
     Real d0 = sqrt(eigenVals[0]);
     Real d1 = sqrt(eigenVals[1]);
     Real d2 = sqrt(eigenVals[2]);
-    D.setZero();
+    D.identity ();
     D(0, 0) = d0;
     D(1, 1) = d1;
     D(2, 2) = d2;
@@ -112,7 +112,7 @@ void MathFunctions::polarDecomposition(const Matrix3r &A, Matrix3r &R, Matrix3r 
     Real l1 = eigenVals[1]; if (l1 <= eps) l1 = 0.0; else l1 = static_cast<Real>(1.0) / d1;
     Real l2 = eigenVals[2]; if (l2 <= eps) l2 = 0.0; else l2 = static_cast<Real>(1.0) / d2;
 
-    Matrix3r S1;
+    Matrix3 S1;
     S1(0, 0) = l0*U(0, 0)*U(0, 0) + l1*U(0, 1)*U(0, 1) + l2*U(0, 2)*U(0, 2);
     S1(1, 1) = l0*U(1, 0)*U(1, 0) + l1*U(1, 1)*U(1, 1) + l2*U(1, 2)*U(1, 2);
     S1(2, 2) = l0*U(2, 0)*U(2, 0) + l1*U(2, 1)*U(2, 1) + l2*U(2, 2)*U(2, 2);
@@ -128,14 +128,14 @@ void MathFunctions::polarDecomposition(const Matrix3r &A, Matrix3r &R, Matrix3r 
     R = S1*A;
 
     // stabilize
-    Vector3r c0, c1, c2;
+    Vec3 c0, c1, c2;
     c0 = R.col(0);
     c1 = R.col(1);
     c2 = R.col(2);
 
-    if (c0.squaredNorm() < eps)
+    if (c0.norm2() < eps)
         c0 = c1.cross(c2);
-    else if (c1.squaredNorm() < eps)
+    else if (c1.norm2 ()< eps)
         c1 = c2.cross(c0);
     else
         c2 = c0.cross(c1);
@@ -146,7 +146,7 @@ void MathFunctions::polarDecomposition(const Matrix3r &A, Matrix3r &R, Matrix3r 
 
 /** Return the one norm of the matrix.
 */
-Real MathFunctions::oneNorm(const Matrix3r &A)
+Real MathFunctions::oneNorm(const Matrix3 &A)
 {
     const Real sum1 = fabs(A(0,0)) + fabs(A(1,0)) + fabs(A(2,0));
     const Real sum2 = fabs(A(0,1)) + fabs(A(1,1)) + fabs(A(2,1));
@@ -161,7 +161,7 @@ Real MathFunctions::oneNorm(const Matrix3r &A)
 
 /** Return the inf norm of the matrix.
 */
-Real MathFunctions::infNorm(const Matrix3r &A)
+Real MathFunctions::infNorm(const Matrix3 &A)
 {
     const Real sum1 = fabs(A(0, 0)) + fabs(A(0, 1)) + fabs(A(0, 2));
     const Real sum2 = fabs(A(1, 0)) + fabs(A(1, 1)) + fabs(A(1, 2));
@@ -176,28 +176,28 @@ Real MathFunctions::infNorm(const Matrix3r &A)
 
 /** Perform a polar decomposition of matrix M and return the rotation matrix R. This method handles the degenerated cases.
 */
-void MathFunctions::polarDecompositionStable(const Matrix3r &M, const Real tolerance, Matrix3r &R)
+void MathFunctions::polarDecompositionStable(const Matrix3 &M, const Real tolerance, Matrix3 &R)
 {
-    Matrix3r Mt = M.transpose();
+    Matrix3 Mt = M.transposed();
     Real Mone = oneNorm(M);
     Real Minf = infNorm(M);
     Real Eone;
-    Matrix3r MadjTt, Et;
+    Matrix3 MadjTt, Et;
     do
     {
-        MadjTt.row(0) = Mt.row(1).cross(Mt.row(2));
-        MadjTt.row(1) = Mt.row(2).cross(Mt.row(0));
-        MadjTt.row(2) = Mt.row(0).cross(Mt.row(1));
+        MadjTt.x() = Mt.y().cross(Mt.z());
+        MadjTt.y() = Mt.z().cross(Mt.x());
+        MadjTt.z() = Mt.x().cross(Mt.y());
 
         Real det = Mt(0,0) * MadjTt(0,0) + Mt(0,1) * MadjTt(0,1) + Mt(0,2) * MadjTt(0,2);
 
         if (fabs(det) < 1.0e-12)
         {
-            Vector3r len;
+            Vec3 len;
             unsigned int index = 0xffffffff;
             for (unsigned int i = 0; i < 3; i++)
             {
-                len[i] = MadjTt.row(i).squaredNorm();
+                len[i] = MadjTt.elems[i].norm2();
                 if (len[i] > 1.0e-12)
                 {
                     // index of valid cross product
@@ -208,15 +208,15 @@ void MathFunctions::polarDecompositionStable(const Matrix3r &M, const Real toler
             }
             if (index == 0xffffffff)
             {
-                R.setIdentity();
+                R.identity();
                 return;
             }
             else
             {
-                Mt.row(index) = Mt.row((index + 1) % 3).cross(Mt.row((index + 2) % 3));
-                MadjTt.row((index + 1) % 3) = Mt.row((index + 2) % 3).cross(Mt.row(index));
-                MadjTt.row((index + 2) % 3) = Mt.row(index).cross(Mt.row((index + 1) % 3));
-                Matrix3r M2 = Mt.transpose();
+                Mt.elems[index] = Mt.elems[(index + 1) % 3].cross(Mt.elems[(index + 2) % 3]);
+                MadjTt.elems[(index + 1) % 3] = Mt.elems[(index + 2) % 3].cross(Mt.elems[index]);
+                MadjTt.elems[(index + 2) % 3] = Mt.elems[index].cross(Mt.elems[(index + 1) % 3]);
+                Matrix3 M2 = Mt.transposed();
                 Mone = oneNorm(M2);
                 Minf = infNorm(M2);
                 det = Mt(0,0) * MadjTt(0,0) + Mt(0,1) * MadjTt(0,1) + Mt(0,2) * MadjTt(0,2);
@@ -248,7 +248,7 @@ void MathFunctions::polarDecompositionStable(const Matrix3r &M, const Real toler
     } while (Eone > Mone * tolerance);
 
     // Q = Mt^T
-    R = Mt.transpose();
+    R = Mt.transposed();
 }
 
 /** Perform a singular value decomposition of matrix A: A = U * sigma * V^T.
@@ -256,20 +256,20 @@ void MathFunctions::polarDecompositionStable(const Matrix3r &M, const Real toler
 * contain a reflection. Reflections are corrected by the inversion handling
 * proposed by Irving et al. 2004.
 */
-void MathFunctions::svdWithInversionHandling(const Matrix3r &A, Vector3r &sigma, Matrix3r &U, Matrix3r &VT)
+void MathFunctions::svdWithInversionHandling(const Matrix3 &A, Vec3 &sigma, Matrix3 &U, Matrix3 &VT)
 {
 
-    Matrix3r AT_A, V;
-    AT_A = A.transpose() * A;
+    Matrix3 V;
+    const  Matrix3& AT_A = A.transposed() * A;
 
-    Vector3r S;
+    Vec3 S;
 
     // Eigen decomposition of A^T * A
     eigenDecomposition(AT_A, V, S);
 
     // Detect if V is a reflection .
     // Make a rotation out of it by multiplying one column with -1.
-    const Real detV = V.determinant();
+    const Real detV = determinant(V);
     if (detV < 0.0)
     {
         Real minLambda = REAL_MAX;
@@ -295,7 +295,7 @@ void MathFunctions::svdWithInversionHandling(const Matrix3r &A, Vector3r &sigma,
     sigma[1] = sqrt(S[1]);
     sigma[2] = sqrt(S[2]);
 
-    VT = V.transpose();
+    VT = V.transposed();
 
     //
     // Check for values of hatF near zero
@@ -315,7 +315,7 @@ void MathFunctions::svdWithInversionHandling(const Matrix3r &A, Vector3r &sigma,
     {
         if (chk > 1)
         {
-            U.setIdentity();
+            U.identity();
         }
         else
         {
@@ -331,16 +331,16 @@ void MathFunctions::svdWithInversionHandling(const Matrix3r &A, Vector3r &sigma,
                 }
             }
 
-            Vector3r v[2];
+            Vec3 v[2];
             unsigned char index = 0;
             for (unsigned char l = 0; l < 3; l++)
             {
                 if (l != pos)
                 {
-                    v[index++] = Vector3r(U(0, l), U(1, l), U(2, l));
+                    v[index++] = Vec3(U(0, l), U(1, l), U(2, l));
                 }
             }
-            Vector3r vec = v[0].cross(v[1]);
+            Vec3 vec = v[0].cross(v[1]);
             vec.normalize();
             U(0, pos) = vec[0];
             U(1, pos) = vec[1];
@@ -349,7 +349,7 @@ void MathFunctions::svdWithInversionHandling(const Matrix3r &A, Vector3r &sigma,
     }
     else
     {
-        Vector3r sigmaInv(static_cast<Real>(1.0) / sigma[0], static_cast<Real>(1.0) / sigma[1], static_cast<Real>(1.0) / sigma[2]);
+        Vec3 sigmaInv(static_cast<Real>(1.0) / sigma[0], static_cast<Real>(1.0) / sigma[1], static_cast<Real>(1.0) / sigma[2]);
         U = A * V;
         for (unsigned char l = 0; l < 3; l++)
         {
@@ -360,7 +360,7 @@ void MathFunctions::svdWithInversionHandling(const Matrix3r &A, Vector3r &sigma,
         }
     }
 
-    const Real detU = U.determinant();
+    const Real detU = determinant(U);
 
     // U is a reflection => inversion
     if (detU < 0.0)
@@ -386,33 +386,25 @@ void MathFunctions::svdWithInversionHandling(const Matrix3r &A, Vector3r &sigma,
 }
 
 // ----------------------------------------------------------------------------------------------
-Real MathFunctions::cotTheta(const Vector3r &v, const Vector3r &w)
+Real MathFunctions::cotTheta(const Vec3 &v, const Vec3 &w)
 {
-    const Real cosTheta = v.dot(w);
+    const Real cosTheta = dot(v,w);
     const Real sinTheta = (v.cross(w)).norm();
     return (cosTheta / sinTheta);
 }
 
 // ----------------------------------------------------------------------------------------------
-void MathFunctions::crossProductMatrix(const Vector3r &v, Matrix3r &v_hat)
-{
-    v_hat <<     0, -v(2),  v(1),
-              v(2),     0, -v(0),
-             -v(1),  v(0),     0;
-}
-
-// ----------------------------------------------------------------------------------------------
-void MathFunctions::extractRotation(const Matrix3r &A, Quaternionr &q,	const unsigned int maxIter)
+void MathFunctions::extractRotation(const Matrix3 &A, Quaternion &q,	const unsigned int maxIter)
 {
     for (unsigned int iter = 0; iter < maxIter; iter++)
     {
-        Matrix3r R = q.matrix();
-        Vector3r omega = (R.col(0).cross(A.col(0)) + R.col(1).cross(A.col(1)) + R.col(2).cross(A.col(2))) *
-            (1.0 / fabs(R.col(0).dot(A.col(0)) + R.col(1).dot(A.col(1)) + R.col(2).dot(A.col(2)) + 1.0e-9));
+        Matrix3 R; q.toMatrix(R);R.transpose (R);
+        Vec3 omega = (R.x().cross(A.x()) + R.y().cross(A.y()) + R.z().cross(A.z())) *
+            (1.0 / fabs(dot(R.x(),A.x()) + dot(R.y(),A.y()) + dot(R.z(),A.z()) + 1.0e-9));
         Real w = omega.norm();
         if (w < 1.0e-9)
             break;
-        q = Quaternionr(AngleAxisr(w, (1.0 / w) * omega)) *	q;
+        q = Quaternion((1.0 / w) * omega,w) *	q;
         q.normalize();
     }
 }
