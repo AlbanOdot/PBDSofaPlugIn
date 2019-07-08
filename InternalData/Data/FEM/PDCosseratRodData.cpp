@@ -13,3 +13,12 @@ void PDCosseratRodData::setupW(const SReal E, const SReal nu, const SReal r)
         m_ws.emplace_back(ws*l);
     }
 }
+
+void PDCosseratRodData::update()
+{
+
+    m_wbt.clear ();
+    m_ws.clear ();
+    if( m_mechanicalObject && m_sofa_topology )
+        init ();
+}

@@ -1,5 +1,6 @@
 #include "PBDVertexMass.hpp"
 #include <SofaBaseMechanics/UniformMass.h>
+#include <SofaBaseMechanics/DiagonalMass.h>
 
 template < class T>
 PBDVertexMass<T>::PBDVertexMass(Mech * m, Topo * t) : PBDBaseConstraintData<T> (m,t)
@@ -16,9 +17,11 @@ void PBDVertexMass<T>::init()
     for(uint i = 0; i < rest.size(); ++i)
     {
         SReal m  = static_cast<sofa::component::mass::UniformMass<sofa::defaulttype::Vec3Types,SReal> *>(PBDBaseConstraintData<T>::m_mechanicalObject->getContext ()->getMass())->getVertexMass ();
-        SReal w = 1.0/m;
+        if( m <= 1e-50 )
+            m = static_cast<sofa::component::mass::DiagonalMass<sofa::defaulttype::Vec3Types,SReal> *>(
+                        PBDBaseConstraintData<T>::m_mechanicalObject->getContext ()->getMass())->getElementMass(i);
         m_mass.emplace_back(m);
-        m_weight.emplace_back(w);
+        m_weight.emplace_back(1.0/m);
     }
 }
 

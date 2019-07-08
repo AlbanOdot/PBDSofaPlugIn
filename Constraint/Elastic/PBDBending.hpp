@@ -9,16 +9,15 @@
 class PBDBending : public PBDElasticConstraint
 {
 public:
-    PBDBending(sofa::simulation::Node* gnode = NULL) : PBDElasticConstraint(),
-    alpha_wann(initData(&alpha_wann,(SReal)1e-2,"a1","Low frequency ondulation")),
-    alpha_too(initData(&alpha_too,(SReal)4e-4,"a2","High frequency ondulation")){}
+    typedef sofa::defaulttype::Vec3 Vec3;
+    PBDBending(sofa::simulation::Node* gnode = nullptr) : PBDElasticConstraint(gnode){}
     /*
      * Inputs : PBDObject   -> Object on wich we will solve the constraint
      *          WriteCoord  -> Free positions on wich we apply the dispalcement
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p);
+    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p) override;
     /*
      * Init function of sofa. It's called after the first init of the tree.
      */
@@ -45,9 +44,6 @@ protected:
      */
     void correction(PBDObject<sofa::defaulttype::Vec3Types> &object, uint a, uint b, WriteCoord& x, const ReadDeriv& vel);
 protected:
-    sofa::core::objectmodel::Data<SReal> alpha_wann;
-    sofa::core::objectmodel::Data<SReal> alpha_too;
-    SReal coeff;
     SReal m_K;
 };
 

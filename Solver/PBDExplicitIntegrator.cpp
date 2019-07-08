@@ -51,7 +51,7 @@ void PBDExplicitIntegrator<sofa::defaulttype::RigidTypes>::integrateAngularVeloc
     for(uint j = 0; j < omega.size (); ++j)
     {
         omega[j] += dt*I[j].asDiagonal ().inverse ()*(tau[j] - omega[j].cross(I[j].asDiagonal ()*omega[j])).eval ();
-        u[j].coeffs() += 0.5*dt*(orientation.orientation (j)*Quaternionr(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
+        u[j].coeffs() += 0.45*dt*(orientation.orientation (j)*Quaternionr(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
         u[j].normalize ();
     }
 }
@@ -123,7 +123,7 @@ void PBDExplicitIntegrator<sofa::defaulttype::Vec3Types>::updatePosAndVel (PBDOb
     auto pointCount = v.ref().size();
     for(uint i = 0; i < pointCount; ++i)
     {
-        v[i] = (p[i]-x[i]) * inv_dt;
+        v[i] = (p[i]-x[i]) * inv_dt * 0.9;
         x[i] = p[i];
     }
 }

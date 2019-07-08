@@ -19,6 +19,8 @@ public:
      */
             void setupW(const SReal E, const SReal nu, const SReal r);
 
+    virtual void update() override;
+
     inline  std::vector<SReal>  ws()                                        {return m_ws;}
     inline  SReal               ws(uint i)                                  {return m_ws[i];}
     inline  std::vector<SReal>  wbt()                                       {return m_wbt;}

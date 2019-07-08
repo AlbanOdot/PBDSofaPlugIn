@@ -18,15 +18,19 @@ public:
      */
     virtual void update() override;
 
-    inline  uint               beginIdx(uint segment)       {return m_indices[segment].info[0];}
-    inline  uint               endIdx(uint segment)         {return m_indices[segment].info[1];}
-    inline  uint               segmentIdx(uint segment)     {return m_indices[segment].info[2];}
-    inline  SReal              length(uint segment)         {return m_averageLength[segment];}
+    enum COLOR{BLACK=true,RED=false};
+
+    inline  uint                beginIdx(uint segment)       {return m_indices[segment].info[0];}
+    inline  uint                endIdx(uint segment)         {return m_indices[segment].info[1];}
+    inline  uint                segmentIdx(uint segment)     {return m_indices[segment].info[2];}
+    inline  SReal               length(uint segment)         {return m_averageLength[segment];}
     inline  std::vector<SReal>& length()                    {return m_averageLength;}
+    inline  bool                color(uint segment)         {return m_color[segment];}
 
 protected:
     std::vector<infos>    m_indices;
     std::vector<SReal>    m_averageLength;
+    std::vector<bool>     m_color;
 };
 
 #endif // PBDBeamElement_HPP

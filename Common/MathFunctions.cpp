@@ -13,14 +13,16 @@ void MathFunctions::jacobiRotate(Matrix3 &A, Matrix3 &R, int p, int q)
     if (A(p, q) == 0.0)
         return;
 
-    Real d = (A(p, p) - A(q, q)) / (static_cast<Real>(2.0)*A(p, q));
-    Real t = static_cast<Real>(1.0) / (fabs(d) + sqrt(d*d + static_cast<Real>(1.0)));
-    if (d < 0.0) t = -t;
-    Real c = static_cast<Real>(1.0) / sqrt(t*t + 1);
+    Real d = (A(p, p) - A(q, q)) / (2.0*A(p, q));
+    Real t = 1.0 / (fabs(d) + sqrt(d*d + 1.0));
+    if (d < 0.0)
+        t = -t;
+    Real c =1.0 / sqrt(t*t + 1.0);
     Real s = t*c;
     A(p, p) += t*A(p, q);
     A(q, q) -= t*A(p, q);
     A(p, q) = A(q, p) = 0.0;
+
     // transform A
     int k;
     for (k = 0; k < 3; k++) {
@@ -43,29 +45,37 @@ void MathFunctions::jacobiRotate(Matrix3 &A, Matrix3 &R, int p, int q)
 // ----------------------------------------------------------------------------------------------
 void MathFunctions::eigenDecomposition(const Matrix3 &A, Matrix3 &eigenVecs, Vec3 &eigenVals)
 {
-    const int numJacobiIterations = 10;
-    const Real epsilon = static_cast<Real>(1e-15);
+   static uint numJacobiIterations = 10;
+   static Real epsilon = 1e-15;
 
     Matrix3 D = A;
-
     // only for symmetric matrices!
     eigenVecs.identity ();	// unit matrix
-    int iter = 0;
-    while (iter < numJacobiIterations) {	// 3 off diagonal elements
+    for( uint iter = 0; iter < numJacobiIterations; ++iter) {	// 3 off diagonal elements
         // find off diagonal element with maximum modulus
         int p, q;
         Real a, max;
-        max = fabs(D(0, 1));
+        max = fabs(A(0, 1));
         p = 0; q = 1;
         a = fabs(D(0, 2));
-        if (a > max) { p = 0; q = 2; max = a; }
+        if (a > max)
+        {
+            p = 0;
+            q = 2;
+            max = a;
+        }
         a = fabs(D(1, 2));
-        if (a > max) { p = 1; q = 2; max = a; }
+        if (a > max)
+        {
+            p = 1;
+            q = 2;
+            max = a;
+        }
         // all small enough -> done
-        if (max < epsilon) break;
+        if (max < epsilon)
+            break;
         // rotate matrix with respect to that element
         jacobiRotate(D, eigenVecs, p, q);
-        iter++;
     }
     eigenVals[0] = D(0, 0);
     eigenVals[1] = D(1, 1);
@@ -326,7 +336,7 @@ void MathFunctions::svdWithInversionHandling(const Matrix3 &A, Vec3 &sigma, Matr
                 {
                     for (unsigned char m = 0; m < 3; m++)
                     {
-                        U(m, l) *= static_cast<Real>(1.0) / sigma[l];
+                        U(m, l) *= 1.0 / sigma[l];
                     }
                 }
             }
@@ -349,7 +359,7 @@ void MathFunctions::svdWithInversionHandling(const Matrix3 &A, Vec3 &sigma, Matr
     }
     else
     {
-        Vec3 sigmaInv(static_cast<Real>(1.0) / sigma[0], static_cast<Real>(1.0) / sigma[1], static_cast<Real>(1.0) / sigma[2]);
+        Vec3 sigmaInv(1.0 / sigma[0], 1.0 / sigma[1], 1.0 / sigma[2]);
         U = A * V;
         for (unsigned char l = 0; l < 3; l++)
         {

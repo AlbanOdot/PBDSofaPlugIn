@@ -32,6 +32,7 @@ void PDCosseratRod::solve(PBDObject<sofa::defaulttype::RigidTypes> &object, Writ
     const uint nbElem = cRod.wq().size ();
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
+        int lastBlack;
         //Compute first
         uint a = cRod.beginIdx (0);
         uint z = cRod.endIdx(0);
@@ -42,25 +43,49 @@ void PDCosseratRod::solve(PBDObject<sofa::defaulttype::RigidTypes> &object, Writ
         //Ligne 10
         solveLinearSystem(cRod,u,m_dx,m_dq,object,p,0);
 
-        //Compute the current one and integrate the previous one
-        for(uint e = 1; e < nbElem; ++e )
+        for(uint e = 1 ; e < cRod.wq().size (); ++e )
         {
-            uint a = cRod.beginIdx (e);
-            uint z = cRod.endIdx(e);
-            m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
-            m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
-            //Ligne 9
-            correction(cRod,u,object,p,m_bendingAndTwistingKs,e);
-            //Ligne 10
-            solveLinearSystem(cRod,u,m_dx,m_dq,object,p,e);
+            if(cRod.color (e) == PBDBeamElement::BLACK)
+            {
+                uint a = cRod.beginIdx (e);
+                uint z = cRod.endIdx(e);
+                m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
+                m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
+                //Ligne 9
+                correction(cRod,u,object,p,m_bendingAndTwistingKs,e);
+                //Ligne 10
+                solveLinearSystem(cRod,u,m_dx,m_dq,object,p,e);
+                lastBlack = e;
+            }
 
-            p[e].getCenter ()+= m_dx[e-1];
-            u[e].coeffs () += m_dq[e-1].coeffs ();
         }
+        int previousRed = -1;
+        for(uint e = cRod.wq().size () - 1 ; e >= 1; --e )
+        {
+            if(cRod.color (e) == PBDBeamElement::RED)
+            {
+                uint a = cRod.beginIdx (e);
+                uint z = cRod.endIdx(e);
+                m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
+                m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
+                //Ligne 9
+                correction(cRod,u,object,p,m_bendingAndTwistingKs,e);
+                //Ligne 10
+                solveLinearSystem(cRod,u,m_dx,m_dq,object,p,e);
 
-        //integrate the last one
-        p[nbElem - 1 ].getCenter () += m_dx[nbElem - 1];
-        u[nbElem - 1].coeffs () += m_dq[nbElem - 1].coeffs ();
+                previousRed = e;
+                if(lastBlack >= 0){
+                    p[lastBlack].getCenter () += m_dx[lastBlack-2];
+                    u[lastBlack].coeffs() += m_dq[lastBlack-2].coeffs ();
+                    lastBlack -= 2;
+                }
+                if(previousRed >= 0)
+                {
+                    p[e].getCenter () += m_dx[previousRed];
+                    u[e].coeffs () += m_dq[previousRed].coeffs ();
+                }
+            }
+        }
     }
 }
 

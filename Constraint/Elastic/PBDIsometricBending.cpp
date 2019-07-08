@@ -16,6 +16,7 @@ void PBDIsometricBending::solve(PBDObject<sofa::defaulttype::Vec3Types> &object,
     }
     uint pointCount = x.ref().size();
     const auto& vel = object.object()->readVelocities ();
+
     if(m_indices.getValue().empty())
     {
         for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
@@ -25,7 +26,6 @@ void PBDIsometricBending::solve(PBDObject<sofa::defaulttype::Vec3Types> &object,
                 //Get the edge of the corresponding neighbors
                 for( const auto& voisin : object.topology().data ()[a])
                 {
-
                     //Enforce the isometric property
                     const sofa::defaulttype::Vec3& x_ij = x[a] - x[voisin.first];
                     SReal l = x_ij.norm();

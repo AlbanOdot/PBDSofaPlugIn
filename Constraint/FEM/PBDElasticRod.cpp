@@ -38,11 +38,16 @@ void PBDElasticRod::solve(PBDObject<sofa::defaulttype::RigidTypes> &object, Writ
     auto& u    = object.orientation ().freeOrientation ();
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
-        for(uint e = 0; e < eRod.wq().size (); ++e )
+        for(uint e = 0 ; e < eRod.wq().size (); ++e )
         {
-            correction(eRod,u,object,p,m_bendingAndTwistingKs,e);
+            if(eRod.color (e) == PBDBeamElement::RED)
+                correction(eRod,u,object,p,m_bendingAndTwistingKs,e);
         }
-        u[u.size ()-1] = u[u.size()-2];
+        for(int e = static_cast<int>(eRod.wq().size () - 1) ; e >= 0; --e )
+        {
+            if(eRod.color (e) == PBDBeamElement::BLACK)
+                correction(eRod,u,object,p,m_bendingAndTwistingKs,e);
+        }
     }
 }
 
@@ -65,6 +70,9 @@ void PBDElasticRod::correction( ElasticRodData& eRod, std::vector<Quaternionr>& 
     gamma     /= (invMass1 + invMass0) / eRod.length(a)+ eRod.wq(a) * static_cast<SReal>(4.0)*eRod.length(e) + eps;
     p[a].getCenter () += invMass0 * gamma;
     p[z].getCenter () -= invMass1 * gamma;
+    // Cs * q * e_3.conjugate (cheaper than quaternion product)
+    Quaternionr dq0 = Quaternionr(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternionr(u[a].z(), -u[a].y(), u[a].x(), -u[a].w());//Bending correction due to displacement in stretching
+    u[a].coeffs() += eRod.wq(a) *(static_cast<SReal>(2.0)* eRod.length(a)) * dq0.coeffs ();
 
     // COMPUTE BENDING AND TWISTING
     Quaternionr omega   = u[a].conjugate() * u[z];   //darboux vector
@@ -78,15 +86,7 @@ void PBDElasticRod::correction( ElasticRodData& eRod, std::vector<Quaternionr>& 
     for (uint i = 0; i < 3; i++)
         omega.coeffs()[i] *= bending_twisting[i] / (eRod.wq(a) + eRod.wq(z) + eps);
     omega.w() = 0.0;    //discrete Darboux vector does not have vanishing scalar part
-
-    if( eRod.wq(a) > 0.0 )
-    {
-        // Cs * q * e_3.conjugate (cheaper than quaternion product)
-        Quaternionr dq0 = Quaternionr(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternionr(u[a].z(), -u[a].y(), u[a].x(), -u[a].w());//Bending correction due to displacement in stretching
-        u[a].coeffs() += (static_cast<SReal>(2.0)* eRod.length(e)) * dq0.coeffs ();
-        u[a].coeffs() += (u[z] * omega).coeffs ();
-    }
-
-    u[z].coeffs() -=  eRod.wq(z) * (u[a] * omega).coeffs ();
+    u[a].coeffs() += eRod.wq(a) * (u[z] * omega).coeffs ();
+    u[z].coeffs() -= eRod.wq(z) * (u[a] * omega).coeffs ();
 
 }
