@@ -10,14 +10,15 @@ class PBDBending : public PBDElasticConstraint
 {
 public:
     typedef sofa::defaulttype::Vec3 Vec3;
-    PBDBending(sofa::simulation::Node* gnode = nullptr) : PBDElasticConstraint(gnode){}
+    PBDBending(sofa::simulation::Node* gnode = nullptr) : PBDElasticConstraint(gnode)
+    {
+        m_stretch_topology = PBDVertexTopology<sofa::defaulttype::Vec3Types>(m_mechanicalObject.getValue (),m_topology.getValue ());
+        m_bending_topology = PBDBendingTopology(m_mechanicalObject.getValue (),m_topology.getValue ());
+    }
     /*
-     * Inputs : PBDObject   -> Object on wich we will solve the constraint
-     *          WriteCoord  -> Free positions on wich we apply the dispalcement
-     *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p) override;
+    virtual void solve(sofa::simulation::Node* node);
     /*
      * Init function of sofa. It's called after the first init of the tree.
      */
@@ -42,8 +43,10 @@ protected:
      *
      * Output : Compute and apply the correction to the concerned vertices
      */
-    void correction(PBDObject<sofa::defaulttype::Vec3Types> &object, uint a, uint b, WriteCoord& x, const ReadDeriv& vel);
+    void correction(uint a, uint b, WriteCoord&p);
 protected:
+    PBDVertexTopology<sofa::defaulttype::Vec3Types>  m_stretch_topology;
+    PBDBendingTopology m_bending_topology;
     SReal m_K;
 };
 

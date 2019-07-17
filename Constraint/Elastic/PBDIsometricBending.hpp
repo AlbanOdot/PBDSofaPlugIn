@@ -16,7 +16,9 @@ public:
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p);
+    virtual void solve(sofa::simulation::Node * node);
+
+    virtual void bwdInit() override;
 
     /// Construction method called by ObjectFactory.
     template<class T>
@@ -27,6 +29,7 @@ public:
         if (arg) obj->parse(arg);
         return obj;
     }
+
 };
 
 #endif // PBDISOOMETRICBENDING_HPP

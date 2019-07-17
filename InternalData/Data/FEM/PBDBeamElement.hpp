@@ -20,12 +20,17 @@ public:
 
     enum COLOR{BLACK=true,RED=false};
 
-    inline  uint                beginIdx(uint segment)       {return m_indices[segment].info[0];}
-    inline  uint                endIdx(uint segment)         {return m_indices[segment].info[1];}
-    inline  uint                segmentIdx(uint segment)     {return m_indices[segment].info[2];}
-    inline  SReal               length(uint segment)         {return m_averageLength[segment];}
-    inline  std::vector<SReal>& length()                    {return m_averageLength;}
-    inline  bool                color(uint segment)         {return m_color[segment];}
+    inline  uint                beginIdx(uint segment)            {return m_indices[segment].info[0];}
+    inline  uint                endIdx(uint segment)              {return m_indices[segment].info[1];}
+    inline  uint                segmentIdx(uint segment)          {return m_indices[segment].info[2];}
+    inline  SReal               length(uint segment)              {return m_averageLength[segment];}
+    inline  std::vector<SReal>& length()                          {return m_averageLength;}
+    inline  bool                color(uint segment)      const    {return m_color[segment];}
+    inline  uint                beginIdx(uint segment)   const    {return m_indices[segment].info[0];}
+    inline  uint                endIdx(uint segment)     const    {return m_indices[segment].info[1];}
+    inline  uint                segmentIdx(uint segment) const    {return m_indices[segment].info[2];}
+    inline  SReal               length(uint segment)     const    {return m_averageLength[segment];}
+    inline  const std::vector<SReal>& length()                 const    {return m_averageLength;}
 
 protected:
     std::vector<infos>    m_indices;

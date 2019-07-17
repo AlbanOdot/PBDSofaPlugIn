@@ -5,84 +5,130 @@
 int PDCosseratRodClass = sofa::core::RegisterObject("Constraint that correct elastic rod.")
                          .add< PDCosseratRod >();
 
-void PDCosseratRod::solve(PBDObject<sofa::defaulttype::RigidTypes> &object, WriteCoord &p)
+void PDCosseratRod::bwdInit ()
 {
 
-    if(!object.hasDataType(PBDObject<sofa::defaulttype::RigidTypes>::COSSERATROD) || !object.hasDataType(PBDObject<sofa::defaulttype::RigidTypes>::ORIENTED))
+    m_mass = PBDVertexMass<sofa::defaulttype::RigidTypes>(m_mechanicalObject.getValue (), m_topology.getValue ());
+    m_orientation = PBDOrientation(m_mechanicalObject.getValue(), m_topology.getValue());
+    m_cosserat_rod = PDCosseratRodData(m_mechanicalObject.getValue (), m_topology.getValue());
+
+    auto node = dynamic_cast<sofa::simulation::Node*>(this->getContext());
+    dt2 = node->getDt () * node->getDt ();
+    SReal nu = m_poisson_ratio.getValue ();
+    SReal E = m_young_modulus.getValue ();
+    SReal mu = E / (2.0 * ( 1.0 + nu ));
+    SReal d = m_radius.getValue ();
+    SReal I = 0.25*M_PI*d*d*d*d;
+    m_bendingAndTwistingKs = vec3(I*E,I*E,I*2.0*mu);
+    m_bendingAndTwistingKs /= m_nbIter.getValue ();
+
+    m_cosserat_rod.applyFixedPoint(m_indices.getValue ());
+    m_cosserat_rod.setupW(m_young_modulus.getValue (),m_poisson_ratio.getValue (), m_radius.getValue ());
+    m_orientation.setInertia ({{m_bendingAndTwistingKs[0],m_bendingAndTwistingKs[1], m_bendingAndTwistingKs[2]}});
+
+    Quaternionr q; q.coeffs ().setZero ();
+    vec3 x(0,0,0);
+    for(uint e = 0; e < m_cosserat_rod.wq().size (); ++e )
     {
-        if(!object.hasDataType(PBDObject<sofa::defaulttype::RigidTypes>::ORIENTED))
-            object.computeOrientation ();
-
-        object.computeCosseratRod ();
-        object.cosseratRod().applyFixedPoint(m_indices.getValue ());
-        object.cosseratRod().setupW(m_young_modulus.getValue (),m_poisson_ratio.getValue (), m_radius.getValue ());
-        object.orientation ().setInertia ({{m_bendingAndTwistingKs[0],m_bendingAndTwistingKs[1], m_bendingAndTwistingKs[2]}});
-
-        Quaternionr q; q.coeffs ().setZero ();
-        vec3 x(0,0,0);
-        for(uint e = 0; e < object.cosseratRod().wq().size (); ++e )
-        {
-            m_dq.emplace_back(q);
-            m_dx.emplace_back(x);
-        }
+        m_dq.emplace_back(q);
+        m_dx.emplace_back(x);
     }
 
-    auto& cRod = object.cosseratRod ();
-    auto& u    = object.orientation ().freeOrientation ();
-    const uint nbElem = cRod.wq().size ();
+}
+
+void PDCosseratRod::solve(sofa::simulation::Node * node)
+{
+
+    WriteCoordR p = m_pbdObject->getFreePosition ();
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
         int lastBlack;
         //Compute first
-        uint a = cRod.beginIdx (0);
-        uint z = cRod.endIdx(0);
+        uint a = m_cosserat_rod.beginIdx (0);
+        uint z = m_cosserat_rod.endIdx(0);
         m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
         m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
         //Ligne 9
-        correction(cRod,u,object,p,m_bendingAndTwistingKs,0);
+        correction(m_cosserat_rod,
+                   m_orientation.freeOrientation(),
+                   m_orientation.restDarboux(m_cosserat_rod.beginIdx (0)),
+                   m_mass.w (m_cosserat_rod.beginIdx (0)),
+                   m_mass.w (m_cosserat_rod.endIdx (0)),
+                   p,
+                   m_orientation.inertia (0),
+                   0);
         //Ligne 10
-        solveLinearSystem(cRod,u,m_dx,m_dq,object,p,0);
+        solveLinearSystem(m_cosserat_rod,
+                          m_orientation.freeOrientation(),
+                          m_mass.w (m_cosserat_rod.beginIdx (0)),
+                          m_mass.w (m_cosserat_rod.endIdx (0)),
+                          p,
+                          0);
 
-        for(uint e = 1 ; e < cRod.wq().size (); ++e )
+        for(uint e = 1 ; e < m_cosserat_rod.wq().size (); ++e )
         {
-            if(cRod.color (e) == PBDBeamElement::BLACK)
+            if(m_cosserat_rod.color (e) == PBDBeamElement::BLACK)
             {
-                uint a = cRod.beginIdx (e);
-                uint z = cRod.endIdx(e);
+                uint a = m_cosserat_rod.beginIdx (e);
+                uint z = m_cosserat_rod.endIdx(e);
                 m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
                 m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
                 //Ligne 9
-                correction(cRod,u,object,p,m_bendingAndTwistingKs,e);
+                correction(m_cosserat_rod,
+                           m_orientation.freeOrientation(),
+                           m_orientation.restDarboux(m_cosserat_rod.beginIdx (e)),
+                           m_mass.w (m_cosserat_rod.beginIdx (e)),
+                           m_mass.w (m_cosserat_rod.endIdx (e)),
+                           p,
+                           m_orientation.inertia (e),
+                           e);
                 //Ligne 10
-                solveLinearSystem(cRod,u,m_dx,m_dq,object,p,e);
+                solveLinearSystem(m_cosserat_rod,
+                                  m_orientation.freeOrientation(),
+                                  m_mass.w (m_cosserat_rod.beginIdx (e)),
+                                  m_mass.w (m_cosserat_rod.endIdx (e)),
+                                  p,
+                                  e);
                 lastBlack = e;
             }
 
         }
         int previousRed = -1;
-        for(uint e = cRod.wq().size () - 1 ; e >= 1; --e )
+        for(int e = static_cast<int>(m_cosserat_rod.wq().size ()-1) ; e >= 0; --e )
         {
-            if(cRod.color (e) == PBDBeamElement::RED)
+            if(m_cosserat_rod.color (e) == PBDBeamElement::RED)
             {
-                uint a = cRod.beginIdx (e);
-                uint z = cRod.endIdx(e);
+                uint a = m_cosserat_rod.beginIdx (e);
+                uint z = m_cosserat_rod.endIdx(e);
                 m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
                 m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
                 //Ligne 9
-                correction(cRod,u,object,p,m_bendingAndTwistingKs,e);
+                correction(m_cosserat_rod,
+                           m_orientation.freeOrientation(),
+                           m_orientation.restDarboux(m_cosserat_rod.beginIdx (e)),
+                           m_mass.w (m_cosserat_rod.beginIdx (e)),
+                           m_mass.w (m_cosserat_rod.endIdx (e)),
+                           p,
+                           m_orientation.inertia (e),
+                           e);
                 //Ligne 10
-                solveLinearSystem(cRod,u,m_dx,m_dq,object,p,e);
+                solveLinearSystem(m_cosserat_rod,
+                                  m_orientation.freeOrientation(),
+                                  m_mass.w (m_cosserat_rod.beginIdx (e)),
+                                  m_mass.w (m_cosserat_rod.endIdx (e)),
+                                  p,
+                                  e);
 
                 previousRed = e;
                 if(lastBlack >= 0){
-                    p[lastBlack].getCenter () += m_dx[lastBlack-2];
-                    u[lastBlack].coeffs() += m_dq[lastBlack-2].coeffs ();
+                    p[lastBlack].getCenter () += m_dx[lastBlack];
+                    m_orientation.freeOrientation()[lastBlack].coeffs() += m_dq[lastBlack].coeffs ();
                     lastBlack -= 2;
                 }
                 if(previousRed >= 0)
                 {
                     p[e].getCenter () += m_dx[previousRed];
-                    u[e].coeffs () += m_dq[previousRed].coeffs ();
+                    m_orientation.freeOrientation()[e].coeffs () += m_dq[previousRed].coeffs ();
                 }
             }
         }
@@ -90,40 +136,3 @@ void PDCosseratRod::solve(PBDObject<sofa::defaulttype::RigidTypes> &object, Writ
 }
 
 
-void PDCosseratRod::solveLinearSystem( PDCosseratRodData& cRod,
-                                       std::vector<Quaternionr>& u,
-                                       std::vector<vec3> dx,
-                                       std::vector<Quaternionr> dq,
-                                       PBDObject<sofa::defaulttype::RigidTypes>& object,
-                                       WriteCoord& p,
-                                       const uint e)
-{
-
-    const uint a = cRod.beginIdx (e);
-    const uint z = cRod.endIdx(e);
-    const SReal invMass1 = object.invMass(a);
-    const SReal invMass0 = object.invMass(z);
-
-    //  COMPUTE STRETCHING AND SHEARING
-    vec3 d3(static_cast<SReal>(2.0) * (u[a].x() * u[a].z() + u[a].w() * u[a].y()),
-            static_cast<SReal>(2.0) * (u[a].y() * u[a].z() - u[a].w() * u[a].x()),
-            u[a].w() * u[a].w() - u[a].x() * u[a].x() - u[a].y() * u[a].y() + u[a].z() * u[a].z());	//third director d3 = q0 * e_3 * q0_conjugate
-
-    vec3 gamma = (p[z].getCenter ()- p[a].getCenter ()) / cRod.length(e) - d3;
-    dx[a] += (invMass0 * cRod.ws(a) + 1e-6) * gamma;
-    dx[z] -= (invMass1 * cRod.ws(z) + 1e-6) * gamma;
-
-
-    // COMPUTE BENDING AND TWISTING
-    Quaternionr omega  = u[a].conjugate() * u[z];   //darboux vector
-    omega.w() = 0.0;    //discrete Darboux vector does not have vanishing scalar part
-    if( cRod.wq(a) > 0.0 )
-    {
-        // Cs * q * e_3.conjugate (cheaper than quaternion product)
-        //The 0.5 is already computed inside wbt
-        Quaternionr u0 = Quaternionr(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternionr(u[a].z(), -u[a].y(), u[a].x(), -u[a].w());
-        dq[a].coeffs() = (static_cast<SReal>(2.0) * cRod.length(a) * cRod.wbt(a)) * u0.coeffs ();
-        dq[a].coeffs () += cRod.wbt(a) * (dq[a] * omega).coeffs ();
-    }
-    dq[z].coeffs () -= (cRod.wbt(z) * cRod.wq (z)) * (u[z] * omega).coeffs ();
-}

@@ -2,21 +2,20 @@
 #define PBDELASTICCONSTRAINT_HPP
 
 #include "../PBDBaseConstraint.hpp"
+#include "../../InternalData/Data/PBDVertexMass.hpp"
 #include <SofaBaseLinearSolver/FullMatrix.h>
 #include <sofa/core/objectmodel/BaseContext.h>
 #include <sofa/simulation/Node.h>
 
-class PBDElasticConstraint : public PBDBaseConstraint<sofa::defaulttype::Vec3Types>
+class PBDElasticConstraint : public PBDConstraint<sofa::defaulttype::Vec3Types>
 {
 public:
     PBDElasticConstraint(sofa::simulation::Node* gnode = NULL)
-        : PBDBaseConstraint(),
+        : PBDConstraint(),
           m_k(initData(&m_k,(SReal)1.0,"resilience","Resilience factor : bending, stretching etc...")){}
-    /*
-     * Init function of sofa. It's called after the first init of the tree.
-     */
-    virtual void bwdInit () override {}
+
 protected:
+    PBDVertexMass<sofa::defaulttype::Vec3Types> m_mass;
     sofa::core::objectmodel::Data<SReal> m_k;
 };
 

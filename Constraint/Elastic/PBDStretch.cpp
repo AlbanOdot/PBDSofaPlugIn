@@ -7,24 +7,24 @@ int PBDStretchClass = sofa::core::RegisterObject("Constraint that correct the st
 void PBDStretch::bwdInit ()
 {
     m_K = 1.0-std::pow(1.0-m_k.getValue (),1.0 / ((double)m_nbIter.getValue ()));
+    m_stretch_topology = PBDVertexTopology<sofa::defaulttype::Vec3Types>(m_mechanicalObject.getValue (),m_topology.getValue ());
+    m_mass = PBDVertexMass<sofa::defaulttype::Vec3Types>(m_mechanicalObject.getValue (), m_topology.getValue ());
 }
 
-void PBDStretch::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoord &p)
+void PBDStretch::solve(sofa::simulation::Node * node)
 {
-
-    if(!object.hasDataType(PBDObject<sofa::defaulttype::Vec3Types>::STRETCH))
-        object.computeStretchTopology ();
-
-    uint pointCount = p.ref().size();
+    WriteCoord p = m_pbdObject->getFreePosition ();
+    uint pointCount = p.size();
     if(m_indices.getValue().empty())
     {
         for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
         {
             for( uint i = 0; i < pointCount; ++i)
             {
-                for( const auto& voisin : object.topology().data ()[i])
+                SReal w0 = m_mass.w(i);
+                for( std::pair<uint,double>& voisin : m_stretch_topology.data()[i])
                 {
-                    correction(i,voisin,p);
+                    correction(i,voisin,p,w0);
                 }
             }
         }
@@ -35,20 +35,23 @@ void PBDStretch::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoo
         //#pragma omp parallel for
         for( uint i = 0; i < idx.size(); ++i)
         {
-            for( const auto& voisin : object.topology().data ()[i])
+            SReal w0 = m_mass.w(i);
+            for( std::pair<uint,double>& voisin : m_stretch_topology.data()[i])
             {
-                correction(i,voisin,p);
+                correction(i,voisin,p,w0);
             }
         }
     }
 }
 
 
-void PBDStretch::correction (uint i, const std::pair<uint,double>& voisin, WriteCoord &p)
+void PBDStretch::correction (uint i, const std::pair<uint,double>& voisin, WriteCoord& p, SReal w0)
 {
+    SReal w1 = m_mass.w(voisin.first);
+    SReal wSum = w0 + w1;
     const sofa::defaulttype::Vec3& p_ij = p[i] - p[voisin.first];
     SReal l = p_ij.norm();
-    const auto& displacement = (0.5*m_K*(l-voisin.second)/l) * p_ij;
-    p[i]            -= displacement;
-    p[voisin.first] += displacement;
+    const auto& displacement = (m_K*(l-voisin.second)/(l * wSum)) * p_ij;
+    p[i]            -= w0 * displacement;
+    p[voisin.first] += w1 * displacement;
 }

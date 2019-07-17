@@ -9,14 +9,14 @@
 class PBDStretch : public PBDElasticConstraint
 {
 public:
-    PBDStretch(sofa::simulation::Node* gnode = NULL) : PBDElasticConstraint(){}
+    PBDStretch(sofa::simulation::Node* gnode = NULL) : PBDElasticConstraint()
+    {
+
+    }
     /*
-     * Inputs : PBDObject   -> Object on wich we will solve the constraint
-     *          WriteCoord  -> Free positions on wich we apply the dispalcement
-     *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p);
+    virtual void solve(sofa::simulation::Node * node);
 
     /*
      * Init function of sofa. It's called after the first init of the tree.
@@ -32,15 +32,14 @@ public:
         return obj;
     }
 
-protected:
-
     /*
-     * Inputs : uint                -> Index of the first point
-     *          pair<uint,double>   -> Index and re'st distance of the neighbor
-     *          WriteCoord          -> Free position (same as solve)
+     * Inputs : uint                                            -> Index of the first point
+     *          pair<uint,double>                               -> Index and re'st distance of the neighbor
+     *          sofa::defaulttype::Vec3Types::VecCoord          -> Free position (same as solve)
      */
-    void correction (uint i, const std::pair<uint,double>& voisin, WriteCoord &p);
+    void correction (uint i, const std::pair<uint,double>& voisin, WriteCoord& p, SReal w0);
 protected:
+    PBDVertexTopology<sofa::defaulttype::Vec3Types>  m_stretch_topology;
     double m_K;
 };
 

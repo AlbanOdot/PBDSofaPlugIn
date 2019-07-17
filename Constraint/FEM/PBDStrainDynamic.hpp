@@ -12,18 +12,30 @@
  *  This class implement http://matthias-mueller-fischer.ch/publications/strainBasedDynamics.pdf
 */
 
-class PBDStrainDynamic : public PBDStrainShape
+class PBDStrainDynamic : public PBDFEMConstraint<sofa::defaulttype::Vec3Types>
 {
 
 public:
-    PBDStrainDynamic(sofa::simulation::Node* gnode = NULL):PBDStrainShape(){}
+    PBDStrainDynamic(sofa::simulation::Node* gnode = NULL):PBDFEMConstraint<sofa::defaulttype::Vec3Types> (){}
     /*
-     * Inputs : PBDObject   -> Object on wich we will solve the constraint
-     *          WriteCoord  -> Free positions on wich we apply the dispalcement
-     *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p) override;
+    virtual void solve(sofa::simulation::Node * node);
+
+    /*
+     * Init function of sofa. It's called after the first init of the tree.
+     */
+    virtual void bwdInit () override;
+
+    static void computeGreenStrainAndPiolaStressInversion(const Matrix3 &F,
+            const Real restVolume,
+            const Real mu, const Real lambda, Matrix3 &epsilon, Matrix3 &sigma, Real &energy);
+
+    static void computeGreenStrainAndPiolaStress(const Matrix3 &F,
+            const Real restVolume,
+            const Real mu, const Real lambda, Matrix3 &epsilon, Matrix3 &sigma, Real &energy);
+
+    static void computeGradCGreen(Real restVolume, const Matrix3 &invRestMat, const Matrix3 &sigma, Vec3 *J);
 
     /// Construction method called by ObjectFactory.
     template<class T>
@@ -34,6 +46,12 @@ public:
         if (arg) obj->parse(arg);
         return obj;
     }
+
+protected:
+    PBDTetrahedronBasis m_basis;
+    SReal m_lambda;
+    SReal m_mu;
 };
+
 
 #endif // PBDSTRAINDynamic_HPP

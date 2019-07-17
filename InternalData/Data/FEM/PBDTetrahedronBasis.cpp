@@ -9,18 +9,19 @@ PBDTetrahedronBasis::PBDTetrahedronBasis(Mech * m, Topo * t) : PBDBaseConstraint
 
 void PBDTetrahedronBasis::init()
 {
+    static SReal one_over_6 = 1.0/6.0;
 
     const auto& rest = m_mechanicalObject->readRestPositions ();
     const auto& tetrahedra = m_sofa_topology->getTetrahedra ();
     for(uint i = 0; i < tetrahedra.size(); ++i)
     {
-        const auto& x = tetrahedra[i];
-        const auto& p3 = rest[x[3]];
+        const auto& t = tetrahedra[i];
+        const auto& p3 = rest[t[3]];
         Matrix3 Dm;
-        Dm.x() = rest[x[0]] - p3;
-        Dm.y() = rest[x[1]] - p3;
-        Dm.z() = rest[x[2]] - p3;
-        SReal volume = 0.166666666666666666 * dot(Dm.x(),Dm.y().cross(Dm.z()));
+        Dm.x() = rest[t[0]] - p3;
+        Dm.y() = rest[t[1]] - p3;
+        Dm.z() = rest[t[2]] - p3;
+        SReal volume = one_over_6 * dot(Dm.x(),Dm.y().cross(Dm.z()));
         m_data.emplace_back(std::pair<float,Matrix3>(volume,Dm.inverted ()));
 
     }

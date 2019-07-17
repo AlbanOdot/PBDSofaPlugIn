@@ -23,8 +23,8 @@ public:
 
     inline  VertexMassData& m() {return m_mass;}
     inline  VertexMassData& w() {return m_weight;}
-    inline  SReal& m(uint i) {return m_mass[i];}
-    inline  SReal& w(uint i) {return m_weight[i];}
+    inline  SReal m(uint i) {return m_mass[i];}
+    inline  SReal w(uint i) {return m_weight[i];}
 
 private:
     VertexMassData m_mass;

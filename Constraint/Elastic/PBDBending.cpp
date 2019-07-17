@@ -8,19 +8,17 @@ int PBDBendingClass = sofa::core::RegisterObject("Constraint that correct the be
 void PBDBending::bwdInit ()
 {
     auto node = dynamic_cast<sofa::simulation::Node*>(this->getContext());
-    m_k = (1.0-std::pow(1.0-m_k.getValue (),1.0 / ((double)m_nbIter.getValue ()))) * node->getDt () * node->getDt ();
+    m_K = 1.0-std::pow(1.0-m_k.getValue (),1.0 / ((double)m_nbIter.getValue ()));
+    m_mass = PBDVertexMass<sofa::defaulttype::Vec3Types>(m_mechanicalObject.getValue (), m_topology.getValue ());
+    m_stretch_topology = PBDVertexTopology<sofa::defaulttype::Vec3Types>(m_mechanicalObject.getValue (),m_topology.getValue ());
+    m_bending_topology = PBDBendingTopology(m_mechanicalObject.getValue (),m_topology.getValue ());
 }
 
-void PBDBending::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoord &x)
+void PBDBending::solve(sofa::simulation::Node * node)
 {
-    if( !object.hasDataType (PBDObject<sofa::defaulttype::Vec3Types>::BENDING) || !object.hasDataType (PBDObject<sofa::defaulttype::Vec3Types>::STRETCH) )
-    {
-        if( !object.hasDataType (PBDObject<sofa::defaulttype::Vec3Types>::STRETCH) )
-            object.computeStretchTopology ();
-        object.computeBendingTopology ();
-    }
-    uint pointCount = x.ref().size();
-    const auto& vel = object.object()->readVelocities ();
+
+    WriteCoord p = m_pbdObject->getFreePosition ();
+    uint pointCount = p.size();
     if(m_indices.getValue().empty())
     {
         for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
@@ -28,9 +26,9 @@ void PBDBending::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoo
             for( uint a = 0; a < pointCount; ++a)
             {
                 //Get the edge of the corresponding neighbors
-                for( const auto& voisin : object.topology().data ()[a])
+                for( const auto& voisin : m_stretch_topology.data ()[a])
                 {
-                    correction(object,a,voisin.first,x,vel);
+                    correction(a,voisin.first,p);
                 }
             }
         }
@@ -43,9 +41,9 @@ void PBDBending::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoo
             for( const auto& a : idx)
             {
                 //Get the edge of the corresponding neighbors
-                for( const auto& voisin : object.topology().data ()[a])
+                for( const auto& voisin : m_stretch_topology.data ()[a])
                 {
-                    correction(object,a,voisin.first,x,vel);
+                    correction(a,voisin.first,p);
                 }
             }
         }
@@ -53,16 +51,16 @@ void PBDBending::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoo
 }
 
 
-void PBDBending::correction (PBDObject<sofa::defaulttype::Vec3Types> &object, uint a, uint b, WriteCoord &p, const ReadDeriv& vel)
+void PBDBending::correction ( uint a, uint b,WriteCoord&p)
 {
     static SReal eps = 1e-6;
-    uint edge_ID = object.sofaTopology ()->getEdgeIndex(a,b);
-    const auto& hessian_and_idx = object.bendTopology ().bendingData ()[edge_ID];
+    uint edge_ID = m_topology.getValue()->getEdgeIndex(a,b);
+    const auto& hessian_and_idx = m_bending_topology.bendingData ()[edge_ID];
     //Apply correction on the points
     for(const auto& data : hessian_and_idx)
     {
         const Vec3 *x[4] = { &p[a], &p[b], &p[data.first[0]], &p[data.first[1]] };
-        Real invMass[4] = { object.invMass (a),object.invMass (b), object.invMass (data.first[0]), object.invMass (data.first[1])};
+        Real invMass[4] = { m_mass.w(a),m_mass.w(b), m_mass.w(data.first[0]), m_mass.w(data.first[1])};
 
         Real energy = 0.0;
         for (unsigned char k = 0; k < 4; k++)

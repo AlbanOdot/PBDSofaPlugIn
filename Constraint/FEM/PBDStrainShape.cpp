@@ -11,10 +11,13 @@ using namespace sofa::defaulttype;
 
 void PBDStrainShape::bwdInit ()
 {
-    SReal p = m_poisson_ratio.getValue ();
+    m_mass = PBDVertexMass<sofa::defaulttype::Vec3Types>(m_mechanicalObject.getValue (),m_topology.getValue ());
+    m_basis = PBDTetrahedronBasis(m_mechanicalObject.getValue (),m_topology.getValue ());
+
+    SReal nu = m_poisson_ratio.getValue ();
     SReal E = m_young_modulus.getValue ();
-    m_lambda = (E*p) / (( 1.0 + p ) * ( 1.0 - 2.0 * p ));
-    m_mu = E / (2.0 * ( 1.0 + p ));
+    m_lambda = (E*nu) / (( 1.0 + nu ) * ( 1.0 - 2.0 * nu ));
+    m_mu = E / (2.0 * ( 1.0 + nu ));
     //C(i,i) defines x/y/z stretching while K[3] define the intensity of the shear motion
     m_C(0,0) = m_lambda + 2 * m_mu  ; m_C(0,1) = m_lambda         ; m_C(0,2) = m_lambda         ;
     m_C(1,0) = m_lambda           ; m_C(1,1) = m_lambda + 2 * m_mu; m_C(1,2) = m_lambda         ;
@@ -23,32 +26,30 @@ void PBDStrainShape::bwdInit ()
     dt2 *= dt2;
 }
 
-void PBDStrainShape::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoord &x)
+void PBDStrainShape::solve(sofa::simulation::Node * node)
 {
-    static SReal eps = 1e-8;
-    if(!object.hasDataType(PBDObject<sofa::defaulttype::Vec3Types>::TETRAHEDRON))
-    {
-        object.computeTetrahedraBasis ();
-    }
-    const auto& Dm_inv = object.tetrahedraBases ().data ();
-    const uint tetCount = object.sofaTopology ()->getNbTetrahedra ();
-    for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
+    static SReal eps = 1e-6;
+    static SReal one_over_6 = 1.0/6.0;
+    const auto& Dm_inv = m_basis.data ();
+    const uint tetCount = m_topology.getValue()->getNbTetrahedra ();
+    WriteCoord p = m_pbdObject->getFreePosition ();
+    for(uint iter = 0; iter < m_nbIter.getValue(); ++iter)
     {
         for(uint i = 0; i < tetCount; ++i)
         {
-            const auto& t = object.sofaTopology ()->getTetra (i);
+            const auto& t = m_topology.getValue()->getTetra (i);
             //First compute Ds to get F
             Matrix3 Ds;
-            Ds.x() = x[t[0]] - x[t[3]];
-            Ds.y() = x[t[1]] - x[t[3]];
-            Ds.z() = x[t[2]] - x[t[3]];
+            Ds.x() = p[t[0]] - p[t[3]];
+            Ds.y() = p[t[1]] - p[t[3]];
+            Ds.z() = p[t[2]] - p[t[3]];
 
             const Matrix3& F = Ds*Dm_inv[i].second;
-            SReal volume = -0.166666666666666666 * dot(Ds.x(),Ds.y().cross(Ds.z()));
+            SReal volume = one_over_6 * dot(Ds.x(),Ds.y().cross(Ds.z()));
             Matrix3 S,epsilon;
             SReal energy;
-            //Only goes in if the tetraheadron is inside-out
-            if( volume / Dm_inv[i].first < 0.2 )
+            //Only goes in if the tetraheadron is inside-out or too flat
+            if( volume / Dm_inv[i].first < 0.08 )
             {
                 computeGreenStrainAndPiolaStressInversion(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,S,energy);
             }
@@ -60,18 +61,18 @@ void PBDStrainShape::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, Writ
             Vec3 gradC[4];
             computeGradCGreen (Dm_inv[i].first,Dm_inv[i].second,S,gradC);
 
-            SReal sumGradSquared =   object.invMass(t[0]) * gradC[0].norm2 ()
-                    + object.invMass(t[1]) * gradC[1].norm2 ()
-                    + object.invMass(t[2]) * gradC[2].norm2 ()
-                    + object.invMass(t[3]) * gradC[3].norm2 ();
+            SReal sumGradSquared =   m_mass.w(t[0]) * gradC[0].norm2 ()
+                    + m_mass.w(t[1]) * gradC[1].norm2 ()
+                    + m_mass.w(t[2]) * gradC[2].norm2 ()
+                    + m_mass.w(t[3]) * gradC[3].norm2 ();
 
             //Check if we reached an equilibrium
             if(sumGradSquared > eps){
                 SReal lagrangeMul = energy / sumGradSquared;
-                x[t[0]] -= lagrangeMul * object.invMass(t[0]) * gradC[0];
-                x[t[1]] -= lagrangeMul * object.invMass(t[1]) * gradC[1];
-                x[t[2]] -= lagrangeMul * object.invMass(t[2]) * gradC[2];
-                x[t[3]] -= lagrangeMul * object.invMass(t[3]) * gradC[3];
+                p[t[0]] -= lagrangeMul * m_mass.w(t[0]) * gradC[0];
+                p[t[1]] -= lagrangeMul * m_mass.w(t[1]) * gradC[1];
+                p[t[2]] -= lagrangeMul * m_mass.w(t[2]) * gradC[2];
+                p[t[3]] -= lagrangeMul * m_mass.w(t[3]) * gradC[3];
             }
         }
 

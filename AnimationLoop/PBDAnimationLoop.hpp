@@ -1,11 +1,12 @@
 #ifndef PBDANIMATIONLOOP_HPP
 #define PBDANIMATIONLOOP_HPP
 
-#include <sofa/core/behavior/BaseAnimationLoop.h>
+#include <sofa/simulation/CollisionAnimationLoop.h>
 #include <sofa/simulation/Node.h>
 #include <SofaBaseMechanics/MechanicalObject.h>
 #include <sofa/core/behavior/ForceField.h>
-#include "../Solver/PBDExplicitIntegrator.hpp"
+#include <sofa/core/behavior/BaseConstraint.h>
+#include "../Solver/PBDSolver.hpp"
 #include "../InternalData/PBDObject.hpp"
 #include "../Constraint/PBDBaseConstraint.hpp"
 
@@ -17,7 +18,7 @@
 #include <sofa/simulation/CollisionAnimationLoop.h>
 #include <SofaConstraint/LCPConstraintSolver.h>
 
-class PBDAnimationLoop : public sofa::core::behavior::BaseAnimationLoop
+class PBDAnimationLoop : public sofa::simulation::CollisionAnimationLoop
 {
     typedef sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Vec3Types::Coord>> Coordinates;
     typedef sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Rigid3Types::Coord>> RCoordinates;
@@ -33,7 +34,7 @@ public:
     typedef sofa::core::behavior::BaseAnimationLoop Inherit;
     typedef sofa::core::objectmodel::BaseContext BaseContext;
     typedef sofa::core::objectmodel::BaseObjectDescription BaseObjectDescription;
-    SOFA_CLASS(PBDAnimationLoop,sofa::core::behavior::BaseAnimationLoop);
+    SOFA_CLASS(PBDAnimationLoop,sofa::simulation::CollisionAnimationLoop);
 
     /// Set the simulation node this animation loop is controlling
     virtual void setNode( sofa::simulation::Node* );
@@ -41,6 +42,7 @@ public:
      * Create and init all of the data needed to solve a defined constraint.
      */
     virtual void init() override;
+
 
     /*
      * Init function of sofa. It's called after the first init of the tree.
@@ -60,8 +62,8 @@ public:
     template<class T>
     static typename T::SPtr create(T*, BaseContext* context, BaseObjectDescription* arg)
     {
-        sofa::simulation::Node* gnode = dynamic_cast<sofa::simulation::Node*>(context);
-        typename T::SPtr obj = sofa::core::objectmodel::New<T>(gnode);
+        sofa::simulation::Node* node = dynamic_cast<sofa::simulation::Node*>(context);
+        typename T::SPtr obj = sofa::core::objectmodel::New<T>(node);
         if (context) context->addObject(obj);
         if (arg) obj->parse(arg);
         return obj;
@@ -71,20 +73,16 @@ protected :
 
     //Context and scene hierachy
     BaseContext* m_context;
-    sofa::simulation::Node* gnode; ///< the node controlled by the loop
-
+    sofa::core::objectmodel::Data<bool> d_threadSafeVisitor;
+    sofa::core::objectmodel::Data<bool> m_solveVelocityConstraintFirst;
+    sofa::core::objectmodel::Data<SReal> f_rayleighMass;
     //Solvers
-    PBDExplicitIntegrator<sofa::defaulttype::Vec3Types> m_integrator_v;
-    PBDExplicitIntegrator<sofa::defaulttype::RigidTypes> m_integrator_r;
-
-    //Datas and transformations
-    std::vector<PBDObject<sofa::defaulttype::Vec3Types>> m_objects_v;
-    std::vector<PBDObject<sofa::defaulttype::RigidTypes>> m_objects_r;
-
+    PBDSolver m_solver;
     sofa::core::objectmodel::Data<int> m_nbIter;
 
-    sofa::core::behavior::ConstraintSolver *constraintSolver;
-    sofa::component::constraintset::LCPConstraintSolver::SPtr defaultSolver;
+    bool m_firststep;
 
 };
+
+
 #endif //PBDANIMATIONLOOP_HPP

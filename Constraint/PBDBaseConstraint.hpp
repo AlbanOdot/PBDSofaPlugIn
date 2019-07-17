@@ -1,47 +1,36 @@
 #ifndef PBDBASECONSTRAINT_HPP
 #define PBDBASECONSTRAINT_HPP
 
-#include <sofa/core/objectmodel/BaseObject.h>
+#include <sofa/core/behavior/OdeSolver.h>
 #include <sofa/core/objectmodel/Data.h>
 #include "../InternalData/PBDObject.hpp"
+#include <sofa/core/objectmodel/Link.h>
 
-template < class T >
-class SOFA_CORE_API PBDBaseConstraint : public virtual sofa::core::objectmodel::BaseObject
+
+class PBDBaseConstraint : public virtual sofa::core::objectmodel::BaseObject
 {
 
-public:
-    SOFA_ABSTRACT_CLASS(PBDBaseConstraint, sofa::core::objectmodel::BaseObject);
-    //SOFA_BASE_CAST_IMPLEMENTATION(PBDBaseConstraint)
-    typedef typename T::Coord       Coord;
-    typedef sofa::helper::vector<Coord>               VecCoord;
-    typedef sofa::core::objectmodel::Data<VecCoord>   Coordinates;
-    typedef sofa::helper::ReadAccessor  <Coordinates> ReadCoord;
-    typedef sofa::helper::WriteAccessor <Coordinates> WriteCoord;
-
-    typedef typename T::Deriv       Deriv;
-    typedef sofa::helper::vector<Deriv>               VecDeriv;
-    typedef sofa::core::objectmodel::Data<VecDeriv>   Derivatives;
-    typedef sofa::helper::ReadAccessor  <Derivatives> ReadDeriv;
-    typedef sofa::helper::WriteAccessor <Derivatives> WriteDeriv;
-
-    typedef sofa::core::objectmodel::Data<sofa::helper::vector<uint>> IndexSet;
-    typedef sofa::defaulttype::BaseMatrix Matrix;
 protected:
-    PBDBaseConstraint()
-        : m_indices(initData(&m_indices, sofa::helper::vector<uint>(), "indices", "ID of the vertices on wich this constraint is to apply")),
-          m_nbIter(initData(&m_nbIter,(uint)1,"iter","Number of iteration for the solver")){}
+    typedef sofa::core::objectmodel::Data<sofa::helper::vector<uint>> IndexSet;
+    typedef sofa::helper::ReadAccessor  <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Vec3Types::Coord>>>       ReadCoord;
+    typedef sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Vec3Types::Coord>>>       WriteCoord;
+    typedef sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Vec3Types::Deriv>>>       WriteDeriv;
+    typedef sofa::helper::ReadAccessor  <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::RigidTypes::Coord>>>      ReadCoordR;
+    typedef sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::RigidTypes::Coord>>>      WriteCoordR;
+    typedef sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::RigidTypes::Deriv>>>      WriteDerivR;
 
+    PBDBaseConstraint():
+        m_indices(initData(&m_indices, sofa::helper::vector<uint>(), "indices", "ID of the vertices on wich this constraint is to apply")),
+        m_nbIter(initData(&m_nbIter,(uint)1,"iter","Number of iteration for the solver"))
+    {}
     virtual ~PBDBaseConstraint() { }
 
 public:
+    SOFA_ABSTRACT_CLASS(PBDBaseConstraint, sofa::core::objectmodel::BaseObject);
     /*
-     * Inputs : PBDObject   -> Object on wich we will solve the constraint
-     *          WriteCoord  -> Free positions on wich we apply the dispalcement
-     *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject<T>& object, WriteCoord& p) = 0;
-
+    virtual void solve(sofa::simulation::Node * node) = 0;
     /*
      * Inputs : int -> Number of iterations
      *
@@ -49,10 +38,44 @@ public:
      * This will most likely lead to unstabilities.
      */
     void setIterCount(int c) { m_nbIter.setValue (c);}
-
-public:
+protected:
     IndexSet m_indices; ///< Indices on wich to apply the constraint
     sofa::core::objectmodel::Data<unsigned int> m_nbIter;
-
 };
+
+
+
+using namespace sofa::core::objectmodel;
+template < class T >
+class SOFA_CORE_API PBDConstraint : public virtual PBDBaseConstraint
+{
+    typedef sofa::core::objectmodel::Data<sofa::helper::vector<uint>> IndexSet;
+    typedef typename sofa::core::objectmodel::BaseLink BaseLink;
+public:
+    SOFA_ABSTRACT_CLASS(PBDConstraint, PBDBaseConstraint);
+
+protected:
+
+    PBDConstraint(): PBDBaseConstraint(),
+        m_mechanicalObject(initLink("attachedTo","Object on wich the constraint will apply")),
+        m_topology(initLink("topology","Link to the topology relevant for this object"))
+    {}
+    virtual ~PBDConstraint() { }
+public:
+    sofa::component::container::MechanicalObject< T >*  mechanical() {return m_mechanicalObject.getValue();}
+    PBDObject<T> * getPBDObject() { return m_pbdObject;}
+    void linkPBDObject(PBDObject<T>* obj) { m_pbdObject = obj;}
+protected:
+    /// Input Model, also called parent
+    PBDObject<T>*    m_pbdObject;
+
+    SingleLink< PBDConstraint,
+                sofa::component::container::MechanicalObject< T >,
+                BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> m_mechanicalObject;
+
+    SingleLink< PBDConstraint,
+                sofa::core::topology::BaseMeshTopology,
+                BaseLink::FLAG_STRONGLINK|BaseLink::FLAG_STOREPATH> m_topology;
+};
+
 #endif

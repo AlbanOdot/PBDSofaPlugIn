@@ -6,6 +6,7 @@
 #include <SofaBaseLinearSolver/FullMatrix.h>
 #include <sofa/core/objectmodel/BaseContext.h>
 #include <sofa/simulation/Node.h>
+#include "../../InternalData/Data/FEM/PBDTetrahedronBasis.hpp"
 
 /**
  * @brief The PBDStrainShape class
@@ -17,12 +18,9 @@ class PBDStrainShape : public PBDFEMConstraint<sofa::defaulttype::Vec3Types>
 public:
     PBDStrainShape(sofa::simulation::Node* gnode = NULL):PBDFEMConstraint<sofa::defaulttype::Vec3Types>(){}
     /*
-     * Inputs : PBDObject   -> Object on wich we will solve the constraint
-     *          WriteCoord  -> Free positions on wich we apply the dispalcement
-     *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(PBDObject<sofa::defaulttype::Vec3Types>& object, WriteCoord& p) override;
+    virtual void solve(sofa::simulation::Node * node);
 
     /*
      * Init function of sofa. It's called after the first init of the tree.
@@ -50,6 +48,7 @@ public:
     }
 
 protected:
+    PBDTetrahedronBasis m_basis;
     SReal m_lambda;
     SReal m_mu;
 };

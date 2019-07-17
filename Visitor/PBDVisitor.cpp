@@ -20,6 +20,8 @@
 * Contact information: contact@sofa-framework.org                             *
 ******************************************************************************/
 #include "./PBDVisitor.hpp"
+#include "../Solver/PBDSolver.hpp"
+
 #include <sofa/simulation/MechanicalVisitor.h>
 #include <sofa/simulation/CollisionVisitor.h>
 
@@ -30,18 +32,17 @@
 #include <sofa/simulation/IntegrateEndEvent.h>
 #include <sofa/simulation/PropagateEventVisitor.h>
 
+#include <sofa/simulation/MechanicalOperations.h>
+#include <sofa/simulation/VectorOperations.h>
+#include <sofa/core/behavior/MultiVec.h>
 
 #include <sofa/helper/AdvancedTimer.h>
 
 //#include "MechanicalIntegration.h"
 
 using namespace sofa::core;
-
-namespace sofa
-{
-
-namespace simulation
-{
+using namespace sofa::simulation;
+using namespace sofa;
 
 
 PBDVisitor::PBDVisitor(const core::ExecParams* params, SReal dt)
@@ -60,58 +61,35 @@ PBDVisitor::PBDVisitor(const core::ExecParams* params)
 
 void PBDVisitor::processBehaviorModel(simulation::Node*, core::BehaviorModel* obj)
 {
-    sofa::helper::AdvancedTimer::stepBegin("BehaviorModel",obj);
     obj->updatePosition(getDt());
-    sofa::helper::AdvancedTimer::stepEnd("BehaviorModel",obj);
 }
 
 void PBDVisitor::fwdInteractionForceField(simulation::Node*, core::behavior::BaseInteractionForceField* obj)
 {
-    //cerr<<"PBDVisitor::IFF "<<obj->getName()<<endl;
-    sofa::helper::AdvancedTimer::stepBegin("InteractionFF",obj);
 
     MultiVecDerivId   ffId      = VecDerivId::externalForce();
     MechanicalParams mparams; // = MechanicalParams::defaultInstance();
     mparams.setDt(this->dt);
     obj->addForce(&mparams, ffId);
-
-    sofa::helper::AdvancedTimer::stepEnd("InteractionFF",obj);
 }
 
 void PBDVisitor::processCollisionPipeline(simulation::Node* node, core::collision::Pipeline* obj)
 {
-    sofa::helper::AdvancedTimer::stepBegin("Collision",obj);
-
-    sofa::helper::AdvancedTimer::stepBegin("begin collision",obj);
-    {
-        CollisionBeginEvent evBegin;
-        PropagateEventVisitor eventPropagation( params, &evBegin);
-        eventPropagation.execute(node->getContext());
-    }
-    sofa::helper::AdvancedTimer::stepEnd("begin collision",obj);
+    CollisionBeginEvent evBegin;
+    PropagateEventVisitor eventPropagation( params, &evBegin);
+    eventPropagation.execute(node->getContext());
 
     CollisionVisitor act(this->params);
     node->execute(&act);
 
-    sofa::helper::AdvancedTimer::stepBegin("end collision",obj);
-    {
-        CollisionEndEvent evEnd;
-        PropagateEventVisitor eventPropagation( params, &evEnd);
-        eventPropagation.execute(node->getContext());
-    }
-    sofa::helper::AdvancedTimer::stepEnd("end collision",obj);
-
-    sofa::helper::AdvancedTimer::stepEnd("Collision",obj);
+    CollisionEndEvent evEnd;
+    PropagateEventVisitor eventPropagationEnd( params, &evEnd);
+    eventPropagationEnd.execute(node->getContext());
 }
 
 void PBDVisitor::processOdeSolver(simulation::Node* node, core::behavior::OdeSolver* solver)
 {
-    sofa::helper::AdvancedTimer::stepBegin("Mechanical",node);
-    /*    MechanicalIntegrationVisitor act(getDt());
-        node->execute(&act);*/
-    //  cerr<<"PBDVisitor::processOdeSolver "<<solver->getName()<<endl;
     solver->solve(params, getDt());
-    sofa::helper::AdvancedTimer::stepEnd("Mechanical",node);
 }
 
 Visitor::Result PBDVisitor::processNodeTopDown(simulation::Node* node)
@@ -186,9 +164,5 @@ Visitor::Result PBDVisitor::processNodeTopDown(simulation::Node* node)
         for_each(this, node, node->interactionForceField, &PBDVisitor::fwdInteractionForceField);
         return RESULT_CONTINUE;
     }
+
 }
-
-} // namespace simulation
-
-} // namespace sofa
-

@@ -1,39 +1,28 @@
 #include "PBDFixedPoint.hpp"
 #include <sofa/core/ObjectFactory.h>
 
-//int PBDFixedPointClass = sofa::core::RegisterObject("Constraint that fixe a point.")
-//                         .add< PBDFixedPoint<sofa::defaulttype::Vec3Types> >(true)
-//                         .add< PBDFixedPoint<sofa::defaulttype::RigidTypes>>();
-
-//template < class T>
-//void PBDFixedPoint<T>::solve(PBDObject<T> &object, WriteCoord &p)
-//{
-//    for(const auto& idx : PBDBaseConstraint<T>::m_indices.getValue ())
-//    {
-//        p[idx] = object.rest()[idx];
-//        std::cout << "Point : "<<p[idx]<<std::endl;
-//        std::cout << "Rest Pos : "<<object.rest()[idx]<<std::endl;
-//    }
-//}
-
 
 int PBDFixedPointClass = sofa::core::RegisterObject("Constraint that fixes a point")
                          .add< PBDFixedPoint >();
-void PBDFixedPoint::solve(PBDObject<sofa::defaulttype::Vec3Types> &object, WriteCoord &p)
+void PBDFixedPoint::solve(sofa::simulation::Node* node)
 {
+    const ReadCoord& r = m_mechanicalObject.getValue ()->readRestPositions ();
+    WriteCoord p = m_pbdObject->getFreePosition ();
     for(const auto& idx : m_indices.getValue ())
     {
-        p[idx] = object.rest()[idx];
+        p[idx] = r[idx];
     }
 }
 
 
 int PBDFixedRigidPointClass = sofa::core::RegisterObject("Constraint that fixes a rigid point")
-                         .add< PBDFixedRigidPoint >();
-void PBDFixedRigidPoint::solve(PBDObject<sofa::defaulttype::RigidTypes> &object, WriteCoord &p)
+                              .add< PBDFixedRigidPoint >();
+void PBDFixedRigidPoint::solve(sofa::simulation::Node* node)
 {
+    const ReadCoordR& r = m_mechanicalObject.getValue ()->readRestPositions ();
+    WriteCoordR p = m_pbdObject->getFreePosition ();;
     for(const auto& idx : m_indices.getValue ())
     {
-        p[idx] = object.rest()[idx];
+        p[idx] = r[idx];
     }
 }

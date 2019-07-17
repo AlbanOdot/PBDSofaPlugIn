@@ -21,9 +21,14 @@
 #include <sofa/simulation/AnimateEndEvent.h>
 #include <sofa/simulation/UpdateContextVisitor.h>
 #include <sofa/simulation/UpdateBoundingBoxVisitor.h>
+#include <sofa/simulation/IntegrateBeginEvent.h>
+#include <sofa/simulation/IntegrateEndEvent.h>
 #include <SofaConstraint/LCPConstraintSolver.h>
+#include "../Visitor/PBDVisitor.hpp"
 
 #include <omp.h>
+
+
 
 
 template class SOFA_CORE_API sofa::helper::WriteAccessor<sofa::helper::vector<sofa::defaulttype::RigidCoord<3,SReal>>>;
@@ -34,6 +39,10 @@ using namespace sofa::core::objectmodel;
 using namespace sofa::defaulttype;
 using namespace sofa::core::behavior;
 using namespace sofa::simulation;
+using namespace sofa::component;
+using namespace sofa;
+using helper::system::thread::CTime;
+using sofa::helper::ScopedAdvancedTimer;
 
 int PBDAnimationLoopClass = sofa::core::RegisterObject("Simulation loop to use in scene without constraints nor contact.")
                             .add< PBDAnimationLoop >()
@@ -44,21 +53,22 @@ int PBDAnimationLoopClass = sofa::core::RegisterObject("Simulation loop to use i
                                             - update the mappings))");
 
 PBDAnimationLoop::PBDAnimationLoop(sofa::simulation::Node* _gnode)
-    :  Inherit(),
-      gnode(_gnode),
+    :  Inherit1(_gnode),
       m_nbIter(initData(&m_nbIter,1,"iter","Number of iteration for the solver"))
+    , m_solveVelocityConstraintFirst(initData(&m_solveVelocityConstraintFirst , false, "solveVelocityConstraintFirst", "solve separately velocity constraint violations before position constraint violations"))
+    , d_threadSafeVisitor(initData(&d_threadSafeVisitor, false, "threadSafeVisitor", "If true, do not use realloc and free visitors in fwdInteractionForceField.")),
+      f_rayleighMass( initData(&f_rayleighMass,(SReal)0.0,"rayleighMass","Rayleigh damping coefficient related to mass"))
+
 {
 }
 
 PBDAnimationLoop::~PBDAnimationLoop()
 {
-}
 
+}
 
 void PBDAnimationLoop::init()
 {
-    if (!gnode)
-        gnode = dynamic_cast<sofa::simulation::Node*>(this->getContext());
     m_context = gnode->getContext();
 }
 
@@ -66,19 +76,9 @@ void PBDAnimationLoop::bwdInit ()
 {
     //On récupère les topologies
     auto topologies = m_context->getObjects<sofa::core::topology::BaseMeshTopology>(BaseContext::SearchDown);
-    auto mechanicalObjects = m_context->getObjects< MechanicalObject< sofa::defaulttype::Vec3Types > >(BaseContext::SearchDown);
-    m_integrator_v.setUpIntegrator(gnode,m_nbIter.getValue ());
-    for(uint i = 0; i < mechanicalObjects.size (); ++i)
-    {
-        m_objects_v.emplace_back(PBDObject<sofa::defaulttype::Vec3Types>(mechanicalObjects[i],topologies[i]));
-    }
+    m_solver.setupSolver(gnode,m_nbIter.getValue (),f_rayleighMass.getValue ());
+    m_firststep = true;
 
-    auto mechanicalObjects_r = m_context->getObjects< MechanicalObject< sofa::defaulttype::RigidTypes > >(BaseContext::SearchDown);
-    m_integrator_r.setUpIntegrator(gnode,m_nbIter.getValue ());
-    for(uint i = 0; i < mechanicalObjects_r.size (); ++i)
-    {
-        m_objects_r.emplace_back(PBDObject<sofa::defaulttype::RigidTypes>(mechanicalObjects_r[i],topologies[i]));
-    }
 }
 
 void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
@@ -86,15 +86,11 @@ void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
     gnode=n;
 }
 
-void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
-                            SReal dt)
+
+static inline void beginEventAndComputeSofaPhysics(const sofa::core::ExecParams* params,
+                                            sofa::simulation::Node* gnode,
+                                            const SReal dt)
 {
-
-    if (dt == 0)
-        dt = gnode->getDt();
-
-    double startTime = gnode->getTime();
-
     {
         AnimateBeginEvent ev ( dt );
         PropagateEventVisitor act ( params, &ev );
@@ -106,50 +102,12 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
 
     AnimateVisitor act(params, dt);
     gnode->execute ( act );
+}
 
-    //Solve PBDConstraints
-    sofa::core::MechanicalParams mparams(*params);
-    const SReal inv_dt = 1.0/dt;
+static inline void EndEventAndUpdateVisitors(const sofa::core::ExecParams* params,
+                                      sofa::simulation::Node* gnode,
+                                      const SReal dt){
 
-    for(auto& object : m_objects_v)
-    {
-        //Object parameters
-        WriteCoord x = object.position();
-        WriteDeriv v = object.velocity();
-
-        //We will compute constrainst on p
-        Coordinates freeCoord(x.ref());
-        WriteCoord p(freeCoord);
-
-        //Solve all of the constraints
-        m_integrator_v.solveConstraint(object,p);
-
-        //Integrate using PBD method
-        m_integrator_v.updatePosAndVel(object,p,x,v,inv_dt);
-    }
-
-    for(auto& object_r : m_objects_r)
-    {
-
-        //Object parameters
-        RWriteCoord x = object_r.position();
-        RWriteDeriv v = object_r.velocity();
-
-        //We will compute constrainst on p
-        RCoordinates freeCoord(x.ref ());
-        RWriteCoord p(freeCoord);
-
-        //Solve all of the constraints
-        m_integrator_r.solveConstraint(object_r,p);
-
-        //Apply torque and angular velocity
-        m_integrator_r.integrateAngularVelocity(object_r,dt);
-
-        //Integrate using PBD method
-        m_integrator_r.updatePosAndVel(object_r,p,x,v,inv_dt);
-    }
-
-    gnode->setTime ( startTime + dt );
     gnode->execute< UpdateSimulationContextVisitor >(params);
 
     {
@@ -171,5 +129,24 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         sofa::helper::ScopedAdvancedTimer timer("UpdateBBox");
         gnode->execute< UpdateBoundingBoxVisitor >(params);
     }
+}
+void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
+                            SReal dt)
+{
+    if (dt == 0)
+        dt = gnode->getDt();
 
+    double startTime = gnode->getTime();
+
+    beginEventAndComputeSofaPhysics(params,gnode,dt);
+
+    //Solve each constraints one by one
+    m_solver.solvePBDConstraints(params);
+
+    //Integrate as said in the PBD method
+    m_solver.integrate (dt);
+
+    gnode->setTime ( startTime + dt );
+
+    EndEventAndUpdateVisitors(params,gnode,dt);
 }

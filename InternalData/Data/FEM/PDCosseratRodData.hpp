@@ -21,10 +21,14 @@ public:
 
     virtual void update() override;
 
-    inline  std::vector<SReal>  ws()                                        {return m_ws;}
+    inline  std::vector<SReal>&  ws()                                       {return m_ws;}
     inline  SReal               ws(uint i)                                  {return m_ws[i];}
-    inline  std::vector<SReal>  wbt()                                       {return m_wbt;}
+    inline  std::vector<SReal>&  wbt()                                      {return m_wbt;}
     inline  SReal               wbt(uint i)                                 {return m_wbt[i];}
+    inline  const std::vector<SReal>&  ws()  const                          {return m_ws;}
+    inline  const std::vector<SReal>&  wbt() const                          {return m_wbt;}
+    inline  SReal               ws(uint i)   const                          {return m_ws[i];}
+    inline  SReal               wbt(uint i)  const                          {return m_wbt[i];}
 
 private:
     std::vector<SReal>      m_ws;
