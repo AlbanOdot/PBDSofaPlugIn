@@ -34,7 +34,7 @@ void PBDSolver::integrate(SReal dt)
     // vel = (p-x) / dt
     // pos = p
     computeVec3Integration(m_v3m,damping_times_inv_dt);
-    computeRigidIntegration(m_node,dt);
+    computeRigidIntegration(m_node,dt,damping_times_inv_dt);
 
 }
 
@@ -124,7 +124,7 @@ void PBDSolver::computeVec3Integration(std::unordered_map<MechanicalObject<Vec3T
     }
 }
 
-void PBDSolver::computeRigidIntegration(sofa::simulation::Node* node, SReal dt)
+void PBDSolver::computeRigidIntegration(sofa::simulation::Node* node, SReal dt, SReal damping_times_inv_dt)
 {
     // Loop over r3m ??
     std::vector<OrientedConstraint*>  orientedConstraints = node->getContext()->getObjects<OrientedConstraint>(sofa::core::objectmodel::BaseContext::SearchDown);
@@ -137,20 +137,19 @@ void PBDSolver::computeRigidIntegration(sofa::simulation::Node* node, SReal dt)
         WriteCoordR x = c->mechanical ()->writePositions ();
         WriteCoordR p = c->getPBDObject ()->getFreePosition ();
         WriteDerivR v = c->mechanical ()->writeVelocities ();
-        Quaternionr n;
         for(uint j = 0; j < omega.size (); ++j)
         {
             omega[j] += dt*I[j].asDiagonal ().inverse ()*(tau[j] - omega[j].cross(I[j].asDiagonal ()*omega[j])).eval ();
-            u[j].coeffs() += 0.45*dt*(c->orientation().orientation (j)*Quaternionr(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
+            u[j].coeffs() += (0.5*dt)*(c->orientation().orientation (j)*Quaternionr(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
             u[j].normalize ();
-            n.coeffs () = (2.0/dt)*(c->orientation().orientation (j).conjugate()*u[j]).coeffs ();
-            omega[j] = n.vec();
+            omega[j] = (2.0*damping_times_inv_dt)*(c->orientation().orientation (j).conjugate()*u[j]).vec();
             c->orientation().orientation (j) = u[j];
 
-            v[j].getVCenter () = (p[j].getCenter () - x[j].getCenter ()) / dt;
-            v[j].getAngular () = Vec3(omega[j][0],omega[j][1],omega[j][2]);
+            //v[j] += RigidTypes::coordDifference (p[j],x[j]) * damping_times_inv_dt;
+            v[j].getLinear () += damping_times_inv_dt * (p[j].getCenter () - x[j].getCenter ());
+            v[j].getAngular() = sofa::defaulttype::Vec3(omega[j][0],omega[j][1],omega[j][2]);
             x[j].getCenter () = p[j].getCenter ();
-            x[j].getOrientation ().set(u[j].x (),u[j].y (),u[j].z (),u[j].w ());
+            //x[j].getOrientation ().set(u[j].x (),u[j].y (),u[j].z (),u[j].w ());
         }
     }
 

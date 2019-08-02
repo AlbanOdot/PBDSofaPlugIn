@@ -2,7 +2,7 @@
 #include <sofa/core/ObjectFactory.h>
 #include <Eigen/MatrixFunctions>
 
-int PDCosseratRodClass = sofa::core::RegisterObject("Constraint that correct elastic rod.")
+int PDCosseratRodClass = sofa::core::RegisterObject("Constraint that correct cosserat rod.")
                          .add< PDCosseratRod >();
 
 void PDCosseratRod::bwdInit ()
@@ -27,11 +27,9 @@ void PDCosseratRod::bwdInit ()
     m_orientation.setInertia ({{m_bendingAndTwistingKs[0],m_bendingAndTwistingKs[1], m_bendingAndTwistingKs[2]}});
 
     Quaternionr q; q.coeffs ().setZero ();
-    vec3 x(0,0,0);
     for(uint e = 0; e < m_cosserat_rod.wq().size (); ++e )
     {
         m_dq.emplace_back(q);
-        m_dx.emplace_back(x);
     }
 
 }
@@ -40,69 +38,14 @@ void PDCosseratRod::solve(sofa::simulation::Node * node)
 {
 
     WriteCoordR p = m_pbdObject->getFreePosition ();
+    uint size = m_cosserat_rod.wq().size ();
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
-        int lastBlack;
-        //Compute first
-        uint a = m_cosserat_rod.beginIdx (0);
-        uint z = m_cosserat_rod.endIdx(0);
-        m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
-        m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
-        //Ligne 9
-        correction(m_cosserat_rod,
-                   m_orientation.freeOrientation(),
-                   m_orientation.restDarboux(m_cosserat_rod.beginIdx (0)),
-                   m_mass.w (m_cosserat_rod.beginIdx (0)),
-                   m_mass.w (m_cosserat_rod.endIdx (0)),
-                   p,
-                   m_orientation.inertia (0),
-                   0);
-        //Ligne 10
-        solveLinearSystem(m_cosserat_rod,
-                          m_orientation.freeOrientation(),
-                          m_mass.w (m_cosserat_rod.beginIdx (0)),
-                          m_mass.w (m_cosserat_rod.endIdx (0)),
-                          p,
-                          0);
-
-        for(uint e = 1 ; e < m_cosserat_rod.wq().size (); ++e )
-        {
-            if(m_cosserat_rod.color (e) == PBDBeamElement::BLACK)
-            {
-                uint a = m_cosserat_rod.beginIdx (e);
-                uint z = m_cosserat_rod.endIdx(e);
-                m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
-                m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
-                //Ligne 9
-                correction(m_cosserat_rod,
-                           m_orientation.freeOrientation(),
-                           m_orientation.restDarboux(m_cosserat_rod.beginIdx (e)),
-                           m_mass.w (m_cosserat_rod.beginIdx (e)),
-                           m_mass.w (m_cosserat_rod.endIdx (e)),
-                           p,
-                           m_orientation.inertia (e),
-                           e);
-                //Ligne 10
-                solveLinearSystem(m_cosserat_rod,
-                                  m_orientation.freeOrientation(),
-                                  m_mass.w (m_cosserat_rod.beginIdx (e)),
-                                  m_mass.w (m_cosserat_rod.endIdx (e)),
-                                  p,
-                                  e);
-                lastBlack = e;
-            }
-
-        }
-        int previousRed = -1;
-        for(int e = static_cast<int>(m_cosserat_rod.wq().size ()-1) ; e >= 0; --e )
+        for(auto& dq : m_dq){dq.coeffs ().setZero ();}//RESET des valeurs du solver global
+        for(uint e = 0 ; e < size; ++e )
         {
             if(m_cosserat_rod.color (e) == PBDBeamElement::RED)
             {
-                uint a = m_cosserat_rod.beginIdx (e);
-                uint z = m_cosserat_rod.endIdx(e);
-                m_dx[a].set(0,0,0);m_dx[z].set(0,0,0);
-                m_dq[a].coeffs ().setZero ();m_dq[z].coeffs ().setZero ();
-                //Ligne 9
                 correction(m_cosserat_rod,
                            m_orientation.freeOrientation(),
                            m_orientation.restDarboux(m_cosserat_rod.beginIdx (e)),
@@ -114,25 +57,67 @@ void PDCosseratRod::solve(sofa::simulation::Node * node)
                 //Ligne 10
                 solveLinearSystem(m_cosserat_rod,
                                   m_orientation.freeOrientation(),
+                                  m_orientation.restDarboux(m_cosserat_rod.beginIdx (e)),
                                   m_mass.w (m_cosserat_rod.beginIdx (e)),
                                   m_mass.w (m_cosserat_rod.endIdx (e)),
                                   p,
+                                  m_orientation.inertia (e),
                                   e);
-
-                previousRed = e;
-                if(lastBlack >= 0){
-                    p[lastBlack].getCenter () += m_dx[lastBlack];
-                    m_orientation.freeOrientation()[lastBlack].coeffs() += m_dq[lastBlack].coeffs ();
-                    lastBlack -= 2;
-                }
-                if(previousRed >= 0)
-                {
-                    p[e].getCenter () += m_dx[previousRed];
-                    m_orientation.freeOrientation()[e].coeffs () += m_dq[previousRed].coeffs ();
-                }
+                std::cout << "ROUGE : "<<e<<std::endl;
             }
+            uint opposite = size - 1 - e;
+            if(m_cosserat_rod.color (opposite) == PBDBeamElement::BLACK)
+            {
+                correction(m_cosserat_rod,
+                           m_orientation.freeOrientation(),
+                           m_orientation.restDarboux(m_cosserat_rod.beginIdx (opposite)),
+                           m_mass.w (m_cosserat_rod.beginIdx (opposite)),
+                           m_mass.w (m_cosserat_rod.endIdx (opposite)),
+                           p,
+                           m_orientation.inertia (opposite),
+                           opposite);
+                //Ligne 10
+                solveLinearSystem(m_cosserat_rod,
+                                  m_orientation.freeOrientation(),
+                                  m_orientation.restDarboux(m_cosserat_rod.beginIdx (opposite)),
+                                  m_mass.w (m_cosserat_rod.beginIdx (opposite)),
+                                  m_mass.w (m_cosserat_rod.endIdx (opposite)),
+                                  p,
+                                  m_orientation.inertia (opposite),
+                                  opposite);
+                std::cout << "NOIR : "<<opposite<<std::endl;
+            }
+        }
+        std::cout<<std::endl;
+        for(uint e = 0 ; e < size; ++e )
+        {
+            uint a = m_cosserat_rod.beginIdx (e);
+            m_orientation.freeOrientation(a).coeffs () += m_dq[a].coeffs ();
+             m_orientation.freeOrientation(a).normalize ();
         }
     }
 }
-
-
+//        for(int e = static_cast<int>(m_cosserat_rod.wq().size () - 1) ; e >= 0; --e )
+//        {
+//            if(m_cosserat_rod.color (e) == PBDBeamElement::BLACK)
+//            {
+//                correction(m_cosserat_rod,
+//                           m_orientation.freeOrientation(),
+//                           m_orientation.restDarboux(m_cosserat_rod.beginIdx (e)),
+//                           m_mass.w (m_cosserat_rod.beginIdx (e)),
+//                           m_mass.w (m_cosserat_rod.endIdx (e)),
+//                           p,
+//                           m_orientation.inertia (e),
+//                           e);
+//                //Ligne 10
+//                solveLinearSystem(m_cosserat_rod,
+//                                  m_orientation.freeOrientation(),
+//                                  m_orientation.restDarboux(m_cosserat_rod.beginIdx (e)),
+//                                  m_mass.w (m_cosserat_rod.beginIdx (e)),
+//                                  m_mass.w (m_cosserat_rod.endIdx (e)),
+//                                  p,
+//                                  m_orientation.inertia (e),
+//                                  e);
+//            }
+//            //We can optimize this by putting the last loop into this one since all of the reds arer already computed
+//        }

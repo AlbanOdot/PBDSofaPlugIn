@@ -60,3 +60,24 @@ void PBDVertexTopology<T>::update()
     if( PBDBaseConstraintData<T>::m_mechanicalObject && PBDBaseConstraintData<T>::m_sofa_topology )
         init ();
 }
+
+template < class T>
+void PBDVertexTopology<T>::initTopology(std::vector<std::vector<uint>>& t)
+{
+   const auto& rest = PBDBaseConstraintData<T>::m_mechanicalObject->readRestPositions ();
+    //Compute the vertice oriented topology
+    for(uint i = 0; i < rest.size(); ++i)
+    {
+        //Get the neighbors of point I
+        const auto& neighbors = PBDBaseConstraintData<T>::m_sofa_topology->getVerticesAroundVertex (i);
+        std::vector<uint> neighborhood;
+        for(const auto& n : neighbors)
+        {
+            if( n < i )//Unidirectionnal neighborhood
+            {
+                neighborhood.emplace_back(n);
+            }
+        }
+        t.emplace_back(neighborhood);
+    }
+}

@@ -59,7 +59,8 @@ namespace sofa
                     X.normalize();
                     R.getCenter()=P0;
                     Quaternionr q; q.setFromTwoVectors(Vector3r(0,0,1),Vector3r(X[0],X[1],X[2]));
-                    q.normalize ();//R.getOrientation().setFromUnitVectors (Vector3(0,0,1),X);
+                    q.normalize ();
+                   // R.getOrientation().setFromUnitVectors (Vector3(0,0,1),X);
                     R.getOrientation () = Quaternion(q.x (),q.y (),q.z (),q.w ());
                     res.emplace_back(R);
 

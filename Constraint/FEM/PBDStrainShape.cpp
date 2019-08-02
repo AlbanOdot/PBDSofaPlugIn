@@ -24,6 +24,11 @@ void PBDStrainShape::bwdInit ()
     m_C(2,0) = m_lambda           ; m_C(2,1) = m_lambda         ; m_C(2,2) = m_lambda + 2 * m_mu;
     dt2 = static_cast<sofa::simulation::Node*>(this->getContext())->getDt ();
     dt2 *= dt2;
+
+    //Update shear so we don't have to compute it every time
+    m_sshear[0] = m_shear.getValue ()[0] * m_shear.getValue ()[1];//xy
+    m_sshear[1] = m_shear.getValue ()[0] * m_shear.getValue ()[2];//xz
+    m_sshear[2] = m_shear.getValue ()[1] * m_shear.getValue ()[2];//yz
 }
 
 void PBDStrainShape::solve(sofa::simulation::Node * node)
@@ -46,28 +51,32 @@ void PBDStrainShape::solve(sofa::simulation::Node * node)
 
             const Matrix3& F = Ds*Dm_inv[i].second;
             SReal volume = one_over_6 * dot(Ds.x(),Ds.y().cross(Ds.z()));
-            Matrix3 S,epsilon;
+            Matrix3 piolaKirchhoff,epsilon;
             SReal energy;
             //Only goes in if the tetraheadron is inside-out or too flat
-            if( volume / Dm_inv[i].first < 0.08 )
+            if( volume * Dm_inv[i].first < 0.0 )
             {
-                computeGreenStrainAndPiolaStressInversion(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,S,energy);
+                computeGreenStrainAndPiolaStressInversion(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,piolaKirchhoff,energy);
             }
             else
             {
-                computeGreenStrainAndPiolaStress(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,S,energy);
+                computeGreenStrainAndPiolaStress(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,piolaKirchhoff,energy);
             }
-
             Vec3 gradC[4];
-            computeGradCGreen (Dm_inv[i].first,Dm_inv[i].second,S,gradC);
-
-            SReal sumGradSquared =   m_mass.w(t[0]) * gradC[0].norm2 ()
+            computeGradCGreen (Dm_inv[i].first,Dm_inv[i].second,piolaKirchhoff,gradC,m_stretch.getValue (),m_shear.getValue ());
+            SReal sumGradSquared =
+                      m_mass.w(t[0]) * gradC[0].norm2 ()
                     + m_mass.w(t[1]) * gradC[1].norm2 ()
                     + m_mass.w(t[2]) * gradC[2].norm2 ()
                     + m_mass.w(t[3]) * gradC[3].norm2 ();
 
             //Check if we reached an equilibrium
             if(sumGradSquared > eps){
+
+//                gradC[0][0] *= m_stretch.getValue()[0];gradC[0][1] *= m_sshear[0];            gradC[0][2] *= m_sshear[1];
+//                gradC[1][0] *= m_sshear[0];            gradC[1][1] *= m_stretch.getValue()[1];gradC[1][2] *= m_sshear[2];
+//                gradC[0][2] *= m_sshear[1];            gradC[1][2] *= m_sshear[2];            gradC[2][2] *= m_stretch.getValue()[2];
+
                 SReal lagrangeMul = energy / sumGradSquared;
                 p[t[0]] -= lagrangeMul * m_mass.w(t[0]) * gradC[0];
                 p[t[1]] -= lagrangeMul * m_mass.w(t[1]) * gradC[1];
@@ -80,7 +89,7 @@ void PBDStrainShape::solve(sofa::simulation::Node * node)
 }
 
 
-void PBDStrainShape::computeGradCGreen(Real restVolume, const Matrix3 &invRestMat, const Matrix3 &sigma, Vec3 *J)
+void PBDStrainShape::computeGradCGreen(Real restVolume, const Matrix3 &invRestMat, const Matrix3 &sigma, Vec3 *J, Vec3 stretch, Vec3 shear)
 {
     Matrix3 H(sigma * invRestMat.transposed () * restVolume);
     J[0] = H.x();

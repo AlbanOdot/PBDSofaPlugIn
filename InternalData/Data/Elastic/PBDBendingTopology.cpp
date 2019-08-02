@@ -1,5 +1,5 @@
 #include "PBDBendingTopology.hpp"
-
+#include "../../../Common/MathFunctions.hpp"
 PBDBendingTopology::PBDBendingTopology(Mech * m, Topo * t) : PBDBaseConstraintData (m,t), m_triangle_rest_area(m,t)
 {
     if( m && t )
@@ -62,10 +62,11 @@ void PBDBendingTopology::update()
 void PBDBendingTopology::computeQ(const sofa::defaulttype::Vec3 *x[], Eigen::Matrix4d &Q,uint i,uint n)
 {
 
-
-    const auto& cot_angle = [](const sofa::defaulttype::Vec3& e0, const sofa::defaulttype::Vec3& e1) -> SReal
+    const auto& cot_angle = [](const sofa::defaulttype::Vec3& v, const sofa::defaulttype::Vec3& w) -> SReal
     {
-        return 1.0/std::tan( std::acos(e0*e1) );
+        const Real cosTheta = dot(v,w);
+        const Real sinTheta = (v.cross(w)).norm();
+        return (cosTheta / sinTheta);
     };
 
     const auto& x0 = *x[0];
@@ -81,16 +82,12 @@ void PBDBendingTopology::computeQ(const sofa::defaulttype::Vec3 *x[], Eigen::Mat
                                     (x1-x3).normalized ()};
 
     //zero padding to keep up with the notation of the paper
-    SReal c0[5] = { 0.0,
-                    cot_angle(e[0],e[1]),
-                    cot_angle(e[0],e[2]),
-                    cot_angle(e[0],e[3]),
-                    cot_angle(e[0],e[4])};
+    SReal c01 = cot_angle(e[0],e[1]);
+    SReal c02 = cot_angle(e[0],e[2]);
+    SReal c03 = cot_angle(e[0],e[3]);
+    SReal c04 = cot_angle(e[0],e[4]);
 
-    sofa::defaulttype::Vec4 K( c0[1]+c0[4],
-                               c0[2]+c0[3],
-                              -c0[1]-c0[2],
-                              -c0[3]-c0[4]);
+    sofa::defaulttype::Vec4 K( c01+c04,c02+c03,-c01-c02,-c03-c04);
 
     //Q is a symetric matrix (Looks a lot like the Loop decimation algorithm matrix ((Just sayin')) )
     Q(0,0) = K[0] * K[0]; Q(0,1) = K[0] * K[1]; Q(0,2) = K[0] * K[2]; Q(0,3) = K[0] * K[3];
@@ -98,5 +95,10 @@ void PBDBendingTopology::computeQ(const sofa::defaulttype::Vec3 *x[], Eigen::Mat
     Q(2,0) = Q(0,2)     ; Q(2,1) = Q(1,2)     ; Q(2,2) = K[2] * K[2]; Q(2,3) = K[2] * K[3];
     Q(3,0) = Q(0,3)     ; Q(3,1) = Q(1,3)     ; Q(3,2) = Q(2,3)     ; Q(3,3) = K[3] * K[3];
 
-    Q *= (3.0/(m_triangle_rest_area.data()[i][n].first+m_triangle_rest_area.data()[i][n].second));
+
+    const Real A0 = static_cast<Real>(0.5) * (e[0].cross(e[1])).norm();
+    const Real A1 = static_cast<Real>(0.5) * (e[0].cross(e[2])).norm();
+    Q *= (3.0/(A1 + A0));
+
 }
+

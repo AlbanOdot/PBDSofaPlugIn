@@ -22,6 +22,7 @@ public:
     virtual void update() override;
 
     inline  VertexTopologyData& data() {return m_data;}
+    void initTopology(std::vector<std::vector<uint>>& t);
 
 private:
     VertexTopologyData m_data;

@@ -31,6 +31,7 @@ void PBDElasticRod::solve(sofa::simulation::Node* node)
 {
 
     WriteCoordR p = m_pbdObject->getFreePosition ();
+    uint size = m_elastic_rod.wq().size ();
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
         for(uint e = 0 ; e < m_elastic_rod.wq().size (); ++e )
@@ -38,24 +39,23 @@ void PBDElasticRod::solve(sofa::simulation::Node* node)
             if(m_elastic_rod.color (e) == PBDBeamElement::RED)
                 correction(m_elastic_rod,
                            m_orientation.freeOrientation(),
-                           m_orientation.restDarboux(),
+                           m_orientation.restDarboux(m_elastic_rod.beginIdx (e)),
                            m_mass.w (m_elastic_rod.beginIdx (e)),
                            m_mass.w (m_elastic_rod.endIdx (e)),
                            p,
                            m_orientation.inertia (e),
                            e);
-        }
-        for(int e = static_cast<int>(m_elastic_rod.wq().size () - 1) ; e >= 0; --e )
-        {
-            if(m_elastic_rod.color (e) == PBDBeamElement::BLACK)
+            uint opposite = size - 1 - e;
+            if(m_elastic_rod.color (opposite) == PBDBeamElement::BLACK)
                 correction(m_elastic_rod,
                            m_orientation.freeOrientation(),
-                           m_orientation.restDarboux(),
-                           m_mass.w (m_elastic_rod.beginIdx (e)),
-                           m_mass.w (m_elastic_rod.endIdx (e)),
+                           m_orientation.restDarboux(m_elastic_rod.beginIdx (opposite)),
+                           m_mass.w (m_elastic_rod.beginIdx (opposite)),
+                           m_mass.w (m_elastic_rod.endIdx (opposite)),
                            p,
-                           m_orientation.inertia (e),
-                           e);
+                           m_orientation.inertia (opposite),
+                           opposite);
+
         }
     }
 }

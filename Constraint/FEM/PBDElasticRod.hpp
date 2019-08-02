@@ -35,7 +35,7 @@ public:
      */
     static inline void correction(const ElasticRodData& eRod,
                                   std::vector<Quaternionr>& u,
-                                  const std::vector<Quaternionr>& restDarboux,
+                                  const Quaternionr& restDarboux,
                                   const SReal w0, const SReal w1,
                                   WriteCoordR& p,
                                   const Eigen::Vector3d& bending_twisting,
@@ -53,17 +53,17 @@ public:
 
         vec3 gamma = (p[z].getCenter ()- p[a].getCenter ()) / eRod.length(e) - d3;
         gamma     /= (w1 + w0) / eRod.length(a)+ eRod.wq(a) * static_cast<SReal>(4.0)*eRod.length(e) + eps;
-        p[a].getCenter () += w0 * gamma;
-        p[z].getCenter () -= w1 * gamma;
+        p[a].getCenter () += eRod.wq(a) * w0 * gamma;
+        p[z].getCenter () -= eRod.wq(z) * w1 * gamma;
         // Cs * q * e_3.conjugate (cheaper than quaternion product)
         Quaternionr dq0 = Quaternionr(0.0, gamma.x(), gamma.y(), gamma.z()) * Quaternionr(u[a].z(), -u[a].y(), u[a].x(), -u[a].w());//Bending correction due to displacement in stretching
         u[a].coeffs() += eRod.wq(a) *(static_cast<SReal>(2.0)* eRod.length(a)) * dq0.coeffs ();
-
+        u[a].normalize ();
         // COMPUTE BENDING AND TWISTING
         Quaternionr omega   = u[a].conjugate() * u[z];   //darboux vector
         Quaternionr omega_plus;
-        omega_plus.coeffs() = omega.coeffs() + restDarboux[a].coeffs(); //delta Omega with + Omega_0
-        omega.coeffs()      = omega.coeffs() - restDarboux[a].coeffs(); //delta Omega with - Omega_0
+        omega_plus.coeffs() = omega.coeffs() + restDarboux.coeffs(); //delta Omega with + Omega_0
+        omega.coeffs()      = omega.coeffs() - restDarboux.coeffs(); //delta Omega with - Omega_0
 
         if (omega.squaredNorm() > omega_plus.squaredNorm())
             omega = omega_plus;
@@ -72,7 +72,9 @@ public:
             omega.coeffs()[i] *= bending_twisting[i] / (eRod.wq(a) + eRod.wq(z) + eps);
         omega.w() = 0.0;    //discrete Darboux vector does not have vanishing scalar part
         u[a].coeffs() += eRod.wq(a) * (u[z] * omega).coeffs ();
+        u[a].normalize ();
         u[z].coeffs() -= eRod.wq(z) * (u[a] * omega).coeffs ();
+        u[z].normalize ();
     }
     /// Construction method called by ObjectFactory.
     template<class T>

@@ -28,6 +28,16 @@ public:
     inline  BendingTopologyData& bendingData()      {return m_bending_topology;}
     inline  TriangleAreaData&    triangleAreaData() {return m_triangle_rest_area.data() ;}
 
+    //Damp all high frequencies by a2 as specified in eq5
+    inline void dampHighFrequencies(SReal a2){
+                                                for(auto& vec : m_bending_topology)
+                                                {
+                                                    for( auto& data : vec)
+                                                        {
+                                                            data.second *= a2;
+                                                        }
+                                                 }
+                                             }
 private:
 
     /*

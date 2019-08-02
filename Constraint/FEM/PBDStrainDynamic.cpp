@@ -25,6 +25,13 @@ void PBDStrainDynamic::bwdInit ()
     m_C(2,0) = m_lambda           ; m_C(2,1) = m_lambda         ; m_C(2,2) = m_lambda + 2 * m_mu;
     dt2 = static_cast<sofa::simulation::Node*>(this->getContext())->getDt ();
     dt2 *= dt2;
+    //Update shear so we don't have to compute it every time
+    m_sshear[0] = m_shear.getValue()[0];//xy
+    m_sshear[1] = m_shear.getValue()[1];//xz
+    m_sshear[2] = m_shear.getValue()[2];//yz
+    m_sstretch[0] = m_stretch.getValue()[0] * 0.5;//xy
+    m_sstretch[1] = m_stretch.getValue()[1] * 0.5;//xz
+    m_sstretch[2] = m_stretch.getValue()[2] * 0.5;//yz
 }
 
 void PBDStrainDynamic::solve(sofa::simulation::Node * node)
@@ -36,38 +43,43 @@ void PBDStrainDynamic::solve(sofa::simulation::Node * node)
     WriteCoord p = m_pbdObject->getFreePosition ();
     for(uint iter = 0; iter < m_nbIter.getValue(); ++iter)
     {
-        for(uint i = 0; i < tetCount; ++i)
+        for(uint tri = 0; tri < tetCount; ++tri)
         {
-            const auto& t = m_topology.getValue()->getTetra (i);
-            //First compute Ds to get F
+            const auto& t = m_topology.getValue()->getTetra (tri);
             Matrix3 Ds;
             Ds.x() = p[t[0]] - p[t[3]];
             Ds.y() = p[t[1]] - p[t[3]];
             Ds.z() = p[t[2]] - p[t[3]];
 
-            const Matrix3& F = Ds*Dm_inv[i].second;
+            const Matrix3& F(Ds * Dm_inv[tri].second);
             SReal volume = one_over_6 * dot(Ds.x(),Ds.y().cross(Ds.z()));
-            Matrix3 S,epsilon;
+            Matrix3 S,piolaK;
             SReal energy;
             //Only goes in if the tetraheadron is inside-out or too flat
-            if( volume / Dm_inv[i].first < 0.08 )
+            if( volume * Dm_inv[tri].first < 0.0 )
             {
-                computeGreenStrainAndPiolaStressInversion(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,S,energy);
+                computeGreenStrainAndPiolaInversion(F,S,piolaK,Dm_inv[tri].first,m_mu,m_lambda,energy,m_sstretch,m_sshear);
             }
             else
             {
-                computeGreenStrainAndPiolaStress(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,S,energy);
+                computeGreenStrainAndPiola(F,S,piolaK,Dm_inv[tri].first,m_mu,m_lambda,energy,m_sstretch,m_sshear);
             }
 
             Vec3 gradC[4];
-            computeGradCGreen (Dm_inv[i].first,Dm_inv[i].second,S,gradC);
-
-            SReal sumGradSquared =   m_mass.w(t[0]) * gradC[0].norm2 ()
+            computeGradCGreen (Dm_inv[tri].first,Dm_inv[tri].second,piolaK,gradC);
+            SReal sumGradSquared =
+                    m_mass.w(t[0]) * gradC[0].norm2 ()
                     + m_mass.w(t[1]) * gradC[1].norm2 ()
                     + m_mass.w(t[2]) * gradC[2].norm2 ()
                     + m_mass.w(t[3]) * gradC[3].norm2 ();
+
+            //Check if we reached an equilibrium
             if(sumGradSquared > eps){
-                //Check if we reached an equilibrium
+
+                //                gradC[0][0] *= m_stretch.getValue()[0];gradC[0][1] *= m_sshear[0];            gradC[0][2] *= m_sshear[1];
+                //                gradC[1][0] *= m_sshear[0];            gradC[1][1] *= m_stretch.getValue()[1];gradC[1][2] *= m_sshear[2];
+                //                gradC[0][2] *= m_sshear[1];            gradC[1][2] *= m_sshear[2];            gradC[2][2] *= m_stretch.getValue()[2];
+
                 SReal lagrangeMul = energy / sumGradSquared;
                 p[t[0]] -= lagrangeMul * m_mass.w(t[0]) * gradC[0];
                 p[t[1]] -= lagrangeMul * m_mass.w(t[1]) * gradC[1];
@@ -75,49 +87,44 @@ void PBDStrainDynamic::solve(sofa::simulation::Node * node)
                 p[t[3]] -= lagrangeMul * m_mass.w(t[3]) * gradC[3];
             }
         }
-
     }
+
 }
 
-void PBDStrainDynamic::computeGradCGreen(Real restVolume, const Matrix3 &invRestMat, const Matrix3 &sigma, Vec3 *J)
+void PBDStrainDynamic::computeGradCGreen(Real restVolume, const Matrix3 &invRestMat, const Matrix3 &piola, Vec3 *J)
 {
-    Matrix3 H(sigma * invRestMat.transposed () * restVolume);
+    Matrix3 H(piola * invRestMat.transposed () * restVolume);
     J[0] = H.x();
-    J[0][0] -= 1.0;
     J[1] = H.y();
-    J[1][1] -= 1.0;
     J[2] = H.z();
-    J[2][2] -= 1.0;
     J[3] = -J[0] - J[1] - J[2];
 }
 
-void PBDStrainDynamic::computeGreenStrainAndPiolaStress(const Matrix3 &F, const Real restVolume,
-                                                        const Real mu, const Real lambda,
-                                                        Matrix3 &epsilon, Matrix3 &sigma, Real &energy)
+void PBDStrainDynamic::computeGreenStrainAndPiola(const Matrix3 &F,Matrix3 &S,Matrix3 &P,SReal restVolume, SReal mu, SReal lambda,SReal& energy,Vec3& stretch, Vec3& shear)
 {
 
-    epsilon(0, 0) = static_cast<Real>(0.5)*(F(0, 0) * F(0, 0) + F(1, 0) * F(1, 0) + F(2, 0) * F(2, 0) - static_cast<Real>(1.0));		// xx
-    epsilon(1, 1) = static_cast<Real>(0.5)*(F(0, 1) * F(0, 1) + F(1, 1) * F(1, 1) + F(2, 1) * F(2, 1) - static_cast<Real>(1.0));		// yy
-    epsilon(2, 2) = static_cast<Real>(0.5)*(F(0, 2) * F(0, 2) + F(1, 2) * F(1, 2) + F(2, 2) * F(2, 2) - static_cast<Real>(1.0));		// zz
-    epsilon(0, 1) = static_cast<Real>(0.5)*(F(0, 0) * F(0, 1) + F(1, 0) * F(1, 1) + F(2, 0) * F(2, 1));			// xy
-    epsilon(0, 2) = static_cast<Real>(0.5)*(F(0, 0) * F(0, 2) + F(1, 0) * F(1, 2) + F(2, 0) * F(2, 2));			// xz
-    epsilon(1, 2) = static_cast<Real>(0.5)*(F(0, 1) * F(0, 2) + F(1, 1) * F(1, 2) + F(2, 1) * F(2, 2));			// yz
-    epsilon(1, 0) = epsilon(0, 1);
-    epsilon(2, 0) = epsilon(0, 2);
-    epsilon(2, 1) = epsilon(1, 2);
+    S(0, 0) = stretch[0]*(F(0, 0) * F(0, 0) + F(1, 0) * F(1, 0) + F(2, 0) * F(2, 0) - static_cast<Real>(1.0));		// xx
+    S(1, 1) = stretch[1]*(F(0, 1) * F(0, 1) + F(1, 1) * F(1, 1) + F(2, 1) * F(2, 1) - static_cast<Real>(1.0));		// yy
+    S(2, 2) = stretch[2]*(F(0, 2) * F(0, 2) + F(1, 2) * F(1, 2) + F(2, 2) * F(2, 2) - static_cast<Real>(1.0));		// zz
+    S(0, 1) = shear[0]*(F(0, 0) * F(0, 1) + F(1, 0) * F(1, 1) + F(2, 0) * F(2, 1));			// xy
+    S(0, 2) = shear[1]*(F(0, 0) * F(0, 2) + F(1, 0) * F(1, 2) + F(2, 0) * F(2, 2));			// xz
+    S(1, 2) = shear[2]*(F(0, 1) * F(0, 2) + F(1, 1) * F(1, 2) + F(2, 1) * F(2, 2));			// yz
+    S(1, 0) = S(0, 1);
+    S(2, 0) = S(0, 2);
+    S(2, 1) = S(1, 2);
     //compute Piola-Kirchhoff 1st stress tensor from St Venant Kirchhoff model
     // S = lambda*tr(E)*I + 2mu*E
-    const Real trace = epsilon(0, 0) + epsilon(1, 1) + epsilon(2, 2);
+    const Real trace = S(0, 0) + S(1, 1) + S(2, 2);
     const Real ltrace = lambda*trace;
-    sigma = epsilon * 2.0*mu;
-    sigma(0, 0) += ltrace;
-    sigma(1, 1) += ltrace;
-    sigma(2, 2) += ltrace;
-    sigma = F * sigma;
+    P = S * 2.0*mu;
+    P(0, 0) += ltrace;
+    P(1, 1) += ltrace;
+    P(2, 2) += ltrace;
+    P = F * P;
 
-    //epsilon symetric so we multiply by 2
-    Real E2 = 2.0 * ( epsilon(0,1) * epsilon(0,1) + epsilon(0,2) * epsilon(0,2) + epsilon(1,2) * epsilon(1,2))
-              + ( epsilon(0,0) * epsilon(0,0) + epsilon(1,1) * epsilon(1,1) + epsilon(2,2) * epsilon(2,2));
+    //S symetric so we multiply by 2
+    Real E2 = 2.0 * ( S(0,1) * S(0,1) + S(0,2) * S(0,2) + S(1,2) * S(1,2))
+              + ( S(0,0) * S(0,0) + S(1,1) * S(1,1) + S(2,2) * S(2,2));
     //Isotropic material strain energy density function
     // psi = 0.5 * lambda * tr(E)^2 + mu*tr(E²)
     //Incompressible tr(E) = 0 -> psi = mu*tr(E^2)
@@ -125,9 +132,7 @@ void PBDStrainDynamic::computeGreenStrainAndPiolaStress(const Matrix3 &F, const 
     energy = restVolume * psi;
 }
 
-void PBDStrainDynamic::computeGreenStrainAndPiolaStressInversion(const Matrix3 &F, const Real restVolume,
-                                                                 const Real mu, const Real lambda,
-                                                                 Matrix3 &epsilon, Matrix3 &sigma, Real &energy)
+void PBDStrainDynamic::computeGreenStrainAndPiolaInversion(const Matrix3 &F, Matrix3 &S,Matrix3 &P,SReal restVolume, SReal mu, SReal lambda,SReal& energy,Vec3& stretch, Vec3& shear)
 {
     //compute Piola-Kirchhoff 1st stress tensor from St Venant Kirchhoff model
     // S = lambda*tr(E)*I + 2mu*E
@@ -144,37 +149,40 @@ void PBDStrainDynamic::computeGreenStrainAndPiolaStressInversion(const Matrix3 &
             hatF[j] = minXVal;
     }
 
-    // epsilon for hatF
-    const Vec3 epsilonHatF(	0.5*(hatF[0]*hatF[0] - 1.0),  0.5*(hatF[1]*hatF[1] - 1.0), 0.5*(hatF[2]*hatF[2] - 1.0));
+    // S for hatF
+    const Vec3 SHatF( stretch[0]*(hatF[0]*hatF[0] - 1.0), stretch[0]*(hatF[1]*hatF[1] - 1.0),  stretch[0]*(hatF[2]*hatF[2] - 1.0));
 
-    const Real trace = epsilonHatF[0] + epsilonHatF[1] + epsilonHatF[2];
+    const Real trace = SHatF[0] + SHatF[1] + SHatF[2];
     const Real ltrace = lambda*trace;
-    Vec3 sigmaVec = epsilonHatF * 2.0*mu;
-    sigmaVec[0] += ltrace;
-    sigmaVec[1] += ltrace;
-    sigmaVec[2] += ltrace;
-    sigmaVec[0] = hatF[0] * sigmaVec[0];
-    sigmaVec[1] = hatF[1] * sigmaVec[1];
-    sigmaVec[2] = hatF[2] * sigmaVec[2];
+    Vec3 PVec = SHatF * 2.0*mu;
+    PVec[0] += ltrace;
+    PVec[1] += ltrace;
+    PVec[2] += ltrace;
+    PVec[0] = hatF[0] * PVec[0];
+    PVec[1] = hatF[1] * PVec[1];
+    PVec[2] = hatF[2] * PVec[2];
 
     Matrix3 epsVT, sigVT;
-    epsVT.x () = epsilonHatF[0] * VT.x ();
-    epsVT.y () = epsilonHatF[1] * VT.y ();
-    epsVT.z () = epsilonHatF[2] * VT.z ();
-    sigVT.x () = sigmaVec[0] * VT.x ();
-    sigVT.y () = sigmaVec[1] * VT.y ();
-    sigVT.z () = sigmaVec[2] * VT.z ();
+    epsVT.x () = SHatF[0] * VT.x ();
+    epsVT.y () = SHatF[1] * VT.y ();
+    epsVT.z () = SHatF[2] * VT.z ();
+    sigVT.x () = PVec[0] * VT.x ();
+    sigVT.y () = PVec[1] * VT.y ();
+    sigVT.z () = PVec[2] * VT.z ();
 
-    epsilon = U*epsVT;
-    sigma = U*sigVT;
+    S = U*epsVT;
+    S(1, 0) = S(0, 1) = shear[0] * S(0, 1);
+    S(2, 0) = S(0, 2) = shear[1] * S(0, 2);
+    S(2, 1) = S(1, 2) = shear[2] * S(1, 2);
 
-    //epsilon symetric so we multiply by 2
-    Real E2 = 2.0 * ( epsilon(0,1) * epsilon(0,1) + epsilon(0,2) * epsilon(0,2) + epsilon(1,2) * epsilon(1,2))
-              + ( epsilon(0,0) * epsilon(0,0) + epsilon(1,1) * epsilon(1,1) + epsilon(2,2) * epsilon(2,2));
+    P = U*sigVT;
+
+    //S symetric so we multiply by 2
+    Real E2 = 2.0 * ( S(0,1) * S(0,1) + S(0,2) * S(0,2) + S(1,2) * S(1,2))
+              + ( S(0,0) * S(0,0) + S(1,1) * S(1,1) + S(2,2) * S(2,2));
     //Isotropic material strain energy density function
     // psi = 0.5 * lambda * tr(E)^2 + mu*tr(E²)
     //Incompressible tr(E) = 0 -> psi = mu*tr(E^2)
     Real psi = mu*E2 + static_cast<Real>(0.5)*lambda * trace*trace;
     energy = restVolume * psi;
 }
-

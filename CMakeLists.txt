@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 
-project(AlphaV VERSION 0.0.1)
+project(Position-Based-Dynamics VERSION 0.0.1)
 
 find_package(OpenMP)
 if (OPENMP_FOUND)

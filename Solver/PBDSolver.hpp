@@ -29,8 +29,8 @@ public:
     void solvePBDConstraints (const sofa::core::ExecParams* params);
     void solveSofaConstraints(const sofa::core::ExecParams* params, SReal dt, sofa::core::MultiVecCoordId freePosId, sofa::core::MultiVecDerivId freeVelId);
 protected:
-    static void computeVec3Integration(std::unordered_map<MechanicalObject<Vec3Types> * ,PBDObject<Vec3Types> *>& mechanicalObjects, SReal damping_times_inv_dt);
-    static void computeRigidIntegration(sofa::simulation::Node* node,SReal dt);
+    static inline void computeVec3Integration(std::unordered_map<MechanicalObject<Vec3Types> * ,PBDObject<Vec3Types> *>& mechanicalObjects, SReal damping_times_inv_dt);
+    static inline void computeRigidIntegration(sofa::simulation::Node* node,SReal dt, SReal damping_times_inv_dt);
 private:
 
     SReal m_damping; ///< Rayleigh damping coefficient related to mass

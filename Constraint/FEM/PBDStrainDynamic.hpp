@@ -16,7 +16,9 @@ class PBDStrainDynamic : public PBDFEMConstraint<sofa::defaulttype::Vec3Types>
 {
 
 public:
-    PBDStrainDynamic(sofa::simulation::Node* gnode = NULL):PBDFEMConstraint<sofa::defaulttype::Vec3Types> (){}
+    PBDStrainDynamic(sofa::simulation::Node* gnode = NULL):PBDFEMConstraint<sofa::defaulttype::Vec3Types> (),
+      m_shear(initData(&m_shear,Vec3(1,1,1),"shear","shear compliance")),
+      m_stretch(initData(&m_stretch,Vec3(1,1,1),"stretch","stretch compliance")){}
     /*
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
@@ -27,15 +29,11 @@ public:
      */
     virtual void bwdInit () override;
 
-    static void computeGreenStrainAndPiolaStressInversion(const Matrix3 &F,
-            const Real restVolume,
-            const Real mu, const Real lambda, Matrix3 &epsilon, Matrix3 &sigma, Real &energy);
+    static inline void computeGreenStrainAndPiolaInversion(const Matrix3 &F,Matrix3 &S,Matrix3 &P,SReal restVolume, SReal mu, SReal lambda, SReal& energy,Vec3& stretch, Vec3& shear);
 
-    static void computeGreenStrainAndPiolaStress(const Matrix3 &F,
-            const Real restVolume,
-            const Real mu, const Real lambda, Matrix3 &epsilon, Matrix3 &sigma, Real &energy);
+    static inline void computeGreenStrainAndPiola(const Matrix3 &F,Matrix3 &S,Matrix3 &P,SReal restVolume, SReal mu, SReal lambda, SReal& energy,Vec3& stretch, Vec3& shear);
 
-    static void computeGradCGreen(Real restVolume, const Matrix3 &invRestMat, const Matrix3 &sigma, Vec3 *J);
+    static inline void computeGradCGreen(Real restVolume, const Matrix3 &invRestMat, const Matrix3 &sigma, Vec3 *J);
 
     /// Construction method called by ObjectFactory.
     template<class T>
@@ -48,6 +46,10 @@ public:
     }
 
 protected:
+    Data<Vec3> m_shear;
+    Vec3 m_sshear;
+    Data<Vec3> m_stretch;
+    Vec3 m_sstretch;
     PBDTetrahedronBasis m_basis;
     SReal m_lambda;
     SReal m_mu;

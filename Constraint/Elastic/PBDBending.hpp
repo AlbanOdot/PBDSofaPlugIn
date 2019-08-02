@@ -10,11 +10,10 @@ class PBDBending : public PBDElasticConstraint
 {
 public:
     typedef sofa::defaulttype::Vec3 Vec3;
-    PBDBending(sofa::simulation::Node* gnode = nullptr) : PBDElasticConstraint(gnode)
-    {
-        m_stretch_topology = PBDVertexTopology<sofa::defaulttype::Vec3Types>(m_mechanicalObject.getValue (),m_topology.getValue ());
-        m_bending_topology = PBDBendingTopology(m_mechanicalObject.getValue (),m_topology.getValue ());
-    }
+    PBDBending(sofa::simulation::Node* gnode = nullptr) : PBDElasticConstraint(gnode),
+        m_alpha_wann(initData(&m_alpha_wann,(SReal)1.0,"a1","Low frequency damping")),
+        m_alpha_too(initData(&m_alpha_too,(SReal)1.0,"a2","High frequency damping"))
+    {}
     /*
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
@@ -45,6 +44,8 @@ protected:
      */
     void correction(uint a, uint b, WriteCoord&p);
 protected:
+    Data<SReal> m_alpha_wann;
+    Data<SReal> m_alpha_too;
     PBDVertexTopology<sofa::defaulttype::Vec3Types>  m_stretch_topology;
     PBDBendingTopology m_bending_topology;
     SReal m_K;
