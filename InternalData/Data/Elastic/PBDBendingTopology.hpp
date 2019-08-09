@@ -3,8 +3,8 @@
 
 #include "../PBDBaseConstraintData.hpp"
 #include "PBDTriangleAreaTopology.hpp"
-
-typedef std::vector<std::vector<std::pair<uint[2],Eigen::Matrix4d>>> BendingTopologyData;
+#include <valarray>
+typedef std::vector<std::vector<std::pair<uint[2],std::valarray<SReal>>>> BendingTopologyData;
 
 /*
  * This class compute and store the data needed to solve the bending constraint described int this paper
@@ -48,7 +48,7 @@ private:
      *
      * Output : Compute the matrix Q as described in the paper
      */
-    inline  void computeQ(const sofa::defaulttype::Vec3 *x[], Eigen::Matrix4d &Q,uint i, uint n);
+    inline  void computeQ(const sofa::defaulttype::Vec3 *x[], std::valarray<SReal> &Q);
 
     BendingTopologyData m_bending_topology;
     PBDTriangleAreaTopology m_triangle_rest_area;

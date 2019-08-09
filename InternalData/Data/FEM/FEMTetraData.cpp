@@ -1,13 +1,13 @@
-#include "PBDTetrahedronBasis.hpp"
+#include "FEMTetraData.hpp"
 #include <Eigen/MatrixFunctions>
 
-PBDTetrahedronBasis::PBDTetrahedronBasis(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
+FEMTetraData::FEMTetraData(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
 {
     if( m && t )
         init ();
 }
 
-void PBDTetrahedronBasis::init()
+void FEMTetraData::init()
 {
     static SReal one_over_6 = 1.0/6.0;
 
@@ -22,13 +22,14 @@ void PBDTetrahedronBasis::init()
         Dm.y() = rest[t[1]] - p3;
         Dm.z() = rest[t[2]] - p3;
         SReal volume = one_over_6 * dot(Dm.x(),Dm.y().cross(Dm.z()));
+        Dm.transpose ();
         m_data.emplace_back(std::pair<float,Matrix3>(volume,Dm.inverted ()));
 
     }
 
 }
 
-void PBDTetrahedronBasis::update()
+void FEMTetraData::update()
 {
     m_data.clear ();
     if( m_mechanicalObject && m_sofa_topology )

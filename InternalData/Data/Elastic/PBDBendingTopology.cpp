@@ -1,5 +1,6 @@
 #include "PBDBendingTopology.hpp"
 #include "../../../Common/MathFunctions.hpp"
+
 PBDBendingTopology::PBDBendingTopology(Mech * m, Topo * t) : PBDBaseConstraintData (m,t), m_triangle_rest_area(m,t)
 {
     if( m && t )
@@ -30,7 +31,7 @@ void PBDBendingTopology::init()
                 const auto& triangles_ID = m_sofa_topology->getTrianglesAroundEdge(edge_ID);
                 for(uint t = 0; t < triangles_ID.size() - 1; ++t)
                 {
-                    std::pair<uint[2],Eigen::Matrix4d> bs;
+                    std::pair<uint[2],std::valarray<SReal>> bs;
 
                     //Third point of the first triangle
                     const auto& t0 = triangles[triangles_ID[t]];
@@ -43,7 +44,7 @@ void PBDBendingTopology::init()
                     bs.first[1] = t1[0] == i || t1[0] == voisin ?
                                       (t1[1] == i || t1[1] == voisin ? t1[2]: t1[1] ): t1[0];
                     x[3] = &(rest[bs.first[1]]);
-                    computeQ(x,bs.second,edge_ID,m_bending_topology[edge_ID].size());
+                    computeQ(x,bs.second);
                     m_bending_topology[edge_ID].emplace_back(bs);
                 }
             }
@@ -59,7 +60,7 @@ void PBDBendingTopology::update()
         init ();
 }
 
-void PBDBendingTopology::computeQ(const sofa::defaulttype::Vec3 *x[], Eigen::Matrix4d &Q,uint i,uint n)
+void PBDBendingTopology::computeQ(const sofa::defaulttype::Vec3 *x[], std::valarray<SReal> &Q)
 {
 
     const auto& cot_angle = [](const sofa::defaulttype::Vec3& v, const sofa::defaulttype::Vec3& w) -> SReal
@@ -90,11 +91,10 @@ void PBDBendingTopology::computeQ(const sofa::defaulttype::Vec3 *x[], Eigen::Mat
     sofa::defaulttype::Vec4 K( c01+c04,c02+c03,-c01-c02,-c03-c04);
 
     //Q is a symetric matrix (Looks a lot like the Loop decimation algorithm matrix ((Just sayin')) )
-    Q(0,0) = K[0] * K[0]; Q(0,1) = K[0] * K[1]; Q(0,2) = K[0] * K[2]; Q(0,3) = K[0] * K[3];
-    Q(1,0) = Q(0,1)     ; Q(1,1) = K[1] * K[1]; Q(1,2) = K[1] * K[2]; Q(1,3) = K[1] * K[3];
-    Q(2,0) = Q(0,2)     ; Q(2,1) = Q(1,2)     ; Q(2,2) = K[2] * K[2]; Q(2,3) = K[2] * K[3];
-    Q(3,0) = Q(0,3)     ; Q(3,1) = Q(1,3)     ; Q(3,2) = Q(2,3)     ; Q(3,3) = K[3] * K[3];
-
+    Q = {K[0] * K[0], K[0] * K[1], K[0] * K[2], K[0] * K[3],
+         K[1] * K[1], K[1] * K[2], K[1] * K[3],
+         K[2] * K[2], K[2] * K[3],
+         K[3] * K[3]};
 
     const Real A0 = static_cast<Real>(0.5) * (e[0].cross(e[1])).norm();
     const Real A1 = static_cast<Real>(0.5) * (e[0].cross(e[2])).norm();

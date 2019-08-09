@@ -1,17 +1,17 @@
-#ifndef PBDTETRAHEDRONBASIS_HPP
-#define PBDTETRAHEDRONBASIS_HPP
+#ifndef StrainEnergyData_HPP
+#define StrainEnergyData_HPP
 
 #include "../PBDBaseConstraintData.hpp"
 
 
 
-class PBDTetrahedronBasis : public PBDBaseConstraintData<sofa::defaulttype::Vec3Types>
+class StrainEnergyData : public PBDBaseConstraintData<sofa::defaulttype::Vec3Types>
 {
     typedef sofa::defaulttype::Vec3 Vec3;
     typedef sofa::defaulttype::Matrix3 Matrix3;
     typedef std::vector<std::pair<SReal,Matrix3>> TetrahedronBasisData;
 public:
-    PBDTetrahedronBasis(Mech * m = nullptr, Topo* t = nullptr);
+    StrainEnergyData(Mech * m = nullptr, Topo* t = nullptr);
     /*
      * Create and init all of the data needed to solve a defined constraint.
      */
@@ -28,4 +28,4 @@ private:
     TetrahedronBasisData m_data;
 };
 
-#endif // PBDTETRAHEDRONBASIS_HPP
+#endif // StrainEnergyData_HPP

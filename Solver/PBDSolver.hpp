@@ -25,15 +25,17 @@ class PBDSolver
 public:
     PBDSolver(){}
     void integrate(SReal dt);
+    void setupOrientations(SReal dt);
     void setupSolver(sofa::simulation::Node* node, int nbIter, SReal rayleigh);
     void solvePBDConstraints (const sofa::core::ExecParams* params);
     void solveSofaConstraints(const sofa::core::ExecParams* params, SReal dt, sofa::core::MultiVecCoordId freePosId, sofa::core::MultiVecDerivId freeVelId);
 protected:
     static inline void computeVec3Integration(std::unordered_map<MechanicalObject<Vec3Types> * ,PBDObject<Vec3Types> *>& mechanicalObjects, SReal damping_times_inv_dt);
-    static inline void computeRigidIntegration(sofa::simulation::Node* node,SReal dt, SReal damping_times_inv_dt);
+    static inline void computeRigidIntegration(sofa::simulation::Node* node, SReal damping_times_inv_dt);
 private:
 
     SReal m_damping; ///< Rayleigh damping coefficient related to mass
+    SReal m_damping_times_inv_dt;
     sofa::core::objectmodel::Data<bool> d_threadSafeVisitor;
     sofa::simulation::Node * m_node;
     std::vector<PBDBaseConstraint * > m_constraint;

@@ -12,6 +12,8 @@ class PBDBaseConstraint : public virtual sofa::core::objectmodel::BaseObject
 
 protected:
     typedef sofa::core::objectmodel::Data<sofa::helper::vector<uint>> IndexSet;
+    typedef sofa::helper::vector<sofa::defaulttype::Vec3Types::Coord> VecCoord;
+    typedef sofa::helper::vector<sofa::defaulttype::Rigid3Types::Coord> VecCoordR;
     typedef sofa::helper::ReadAccessor  <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Vec3Types::Coord>>>       ReadCoord;
     typedef sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Vec3Types::Coord>>>       WriteCoord;
     typedef sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::Vec3Types::Deriv>>>       WriteDeriv;
@@ -19,11 +21,10 @@ protected:
     typedef sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::RigidTypes::Coord>>>      WriteCoordR;
     typedef sofa::helper::WriteAccessor <sofa::core::objectmodel::Data<sofa::helper::vector<sofa::defaulttype::RigidTypes::Deriv>>>      WriteDerivR;
 
-    PBDBaseConstraint():
+    PBDBaseConstraint(sofa::simulation::Node* gnode = nullptr):
         m_indices(initData(&m_indices, sofa::helper::vector<uint>(), "indices", "ID of the vertices on wich this constraint is to apply")),
-        m_nbIter(initData(&m_nbIter,(uint)1,"iter","Number of iteration for the solver"))
+        m_nbIter(initData(&m_nbIter,static_cast<uint>(1),"iter","Number of iteration for the solver"))
     {}
-    virtual ~PBDBaseConstraint() { }
 
 public:
     SOFA_ABSTRACT_CLASS(PBDBaseConstraint, sofa::core::objectmodel::BaseObject);
@@ -37,7 +38,7 @@ public:
      * Some constraints can have their own number of iterations. Do not use unless you know what you're doing.
      * This will most likely lead to unstabilities.
      */
-    void setIterCount(int c) { m_nbIter.setValue (c);}
+    void setIterCount(int c) { m_nbIter.setValue (static_cast<uint>(c));}
 protected:
     IndexSet m_indices; ///< Indices on wich to apply the constraint
     sofa::core::objectmodel::Data<unsigned int> m_nbIter;
@@ -56,7 +57,7 @@ public:
 
 protected:
 
-    PBDConstraint(): PBDBaseConstraint(),
+    PBDConstraint(sofa::simulation::Node* gnode = nullptr): PBDBaseConstraint(gnode),
         m_mechanicalObject(initLink("attachedTo","Object on wich the constraint will apply")),
         m_topology(initLink("topology","Link to the topology relevant for this object"))
     {}

@@ -16,8 +16,13 @@ public:
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
+    virtual void bwdInit()
+    {
 
+    }
     virtual void solve( sofa::simulation::Node* node);
+
+    virtual void draw(const sofa::core::visual::VisualParams* vparams) override;
 
     /// Construction method called by ObjectFactory.
     template<class T>
@@ -44,6 +49,8 @@ public:
      */
 
     virtual void solve( sofa::simulation::Node* node);
+
+    virtual void draw(const sofa::core::visual::VisualParams* vparams) override;
 
     /// Construction method called by ObjectFactory.
     template<class T>

@@ -8,8 +8,9 @@ PBDElasticRodData::PBDElasticRodData(Mech * m, Topo * t) : PBDBeamElement(m,t)
 
 void PBDElasticRodData::init()
 {
-    const auto& rest = m_mechanicalObject->readRestPositions ();
-    for(const auto& r : rest)
+
+    const auto& edges = m_mechanicalObject->readRestPositions ();
+    for(const auto& r : edges)
     {
         m_wq.emplace_back(1.0);
     }

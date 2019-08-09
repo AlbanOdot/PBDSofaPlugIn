@@ -10,7 +10,6 @@
 #include <utility>
 #include <sofa/helper/system/thread/CTime.h>
 #include "../Constraint/FEM/PBDElasticRod.hpp"
-#include "../Constraint/FEM/PDCosseratRod.hpp"
 
 using namespace sofa;
 using sofa::core::VecId;
@@ -30,11 +29,11 @@ using namespace sofa::core::objectmodel;
 
 void PBDSolver::integrate(SReal dt)
 {
-    SReal damping_times_inv_dt = m_damping / dt;
+    m_damping_times_inv_dt = m_damping / dt;
     // vel = (p-x) / dt
     // pos = p
-    computeVec3Integration(m_v3m,damping_times_inv_dt);
-    computeRigidIntegration(m_node,dt,damping_times_inv_dt);
+    computeVec3Integration(m_v3m,m_damping_times_inv_dt);
+    computeRigidIntegration(m_node,m_damping_times_inv_dt);
 
 }
 
@@ -124,33 +123,46 @@ void PBDSolver::computeVec3Integration(std::unordered_map<MechanicalObject<Vec3T
     }
 }
 
-void PBDSolver::computeRigidIntegration(sofa::simulation::Node* node, SReal dt, SReal damping_times_inv_dt)
+void PBDSolver::computeRigidIntegration(sofa::simulation::Node* node,SReal damping_times_inv_dt)
 {
     // Loop over r3m ??
     std::vector<OrientedConstraint*>  orientedConstraints = node->getContext()->getObjects<OrientedConstraint>(sofa::core::objectmodel::BaseContext::SearchDown);
     for(OrientedConstraint * c : orientedConstraints)
     {
         auto& omega = c->orientation().angularSpeed ();
-        auto& I = c->orientation().inertia ();
-        auto& tau = c->orientation().torque ();
         auto& u = c->orientation().freeOrientation ();
         WriteCoordR x = c->mechanical ()->writePositions ();
         WriteCoordR p = c->getPBDObject ()->getFreePosition ();
         WriteDerivR v = c->mechanical ()->writeVelocities ();
         for(uint j = 0; j < omega.size (); ++j)
         {
-            omega[j] += dt*I[j].asDiagonal ().inverse ()*(tau[j] - omega[j].cross(I[j].asDiagonal ()*omega[j])).eval ();
-            u[j].coeffs() += (0.5*dt)*(c->orientation().orientation (j)*Quaternionr(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
-            u[j].normalize ();
             omega[j] = (2.0*damping_times_inv_dt)*(c->orientation().orientation (j).conjugate()*u[j]).vec();
             c->orientation().orientation (j) = u[j];
-
-            //v[j] += RigidTypes::coordDifference (p[j],x[j]) * damping_times_inv_dt;
-            v[j].getLinear () += damping_times_inv_dt * (p[j].getCenter () - x[j].getCenter ());
+            v[j] += RigidTypes::coordDifference (p[j],x[j]) * damping_times_inv_dt;
             v[j].getAngular() = sofa::defaulttype::Vec3(omega[j][0],omega[j][1],omega[j][2]);
             x[j].getCenter () = p[j].getCenter ();
-            //x[j].getOrientation ().set(u[j].x (),u[j].y (),u[j].z (),u[j].w ());
+            x[j].getOrientation ().set(u[j].x (),u[j].y (),u[j].z (),u[j].w ());
         }
     }
 
+}
+
+void PBDSolver::setupOrientations(SReal dt)
+{
+    std::vector<OrientedConstraint*>  orientedConstraints = m_node->getContext()->getObjects<OrientedConstraint>(sofa::core::objectmodel::BaseContext::SearchDown);
+    for(OrientedConstraint * c : orientedConstraints)
+    {
+        auto& omega = c->orientation().angularSpeed ();
+        auto& I = c->orientation().inertia ();
+        auto& tau = c->orientation().torque ();
+        auto& u = c->orientation().freeOrientation ();
+        for(uint j = 0; j < omega.size (); ++j)
+        {
+            //Line 9 of the algorithm
+            omega[j] += dt*I[j].asDiagonal ().inverse ()*(tau[j] - omega[j].cross(I[j].asDiagonal ()*omega[j])).eval ();
+            //Line 11 of the algorithm
+            u[j].coeffs() += (0.5*dt)*(c->orientation().orientation (j)*Quaternionr(0,omega[j].x (),omega[j].y (),omega[j].z ())).coeffs();//beam[j].m_q*
+            u[j].normalize ();
+        }
+    }
 }

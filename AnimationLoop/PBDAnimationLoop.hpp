@@ -58,6 +58,7 @@ public:
      */
     virtual void step(const sofa::core::ExecParams* params, SReal dt) override;
 
+    int getNbIter() {return m_nbIter.getValue ();}
     /// Construction method called by ObjectFactory.
     template<class T>
     static typename T::SPtr create(T*, BaseContext* context, BaseObjectDescription* arg)

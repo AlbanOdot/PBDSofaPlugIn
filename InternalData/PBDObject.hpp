@@ -9,10 +9,9 @@
 #include "./Data/Elastic/PBDVertexTopology.hpp"
 #include "./Data/Elastic/PBDBendingTopology.hpp"
 
-#include "./Data/FEM/PBDTetrahedronBasis.hpp"
-#include "./Data/FEM/PBDStiffRodData.hpp"
+#include "./Data/FEM/StrainEnergyData.hpp"
+#include "./Data/FEM/FEMTetraData.hpp"
 #include "./Data/FEM/PBDElasticRodData.hpp"
-#include "./Data/FEM/PDCosseratRodData.hpp"
 
 template < class T >
 class PBDObject

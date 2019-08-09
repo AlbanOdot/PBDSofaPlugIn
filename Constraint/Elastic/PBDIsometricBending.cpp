@@ -13,11 +13,13 @@ void PBDIsometricBending::bwdInit ()
     m_mass = PBDVertexMass<sofa::defaulttype::Vec3Types>(m_mechanicalObject.getValue (), m_topology.getValue ());
     m_stretch_topology = PBDVertexTopology<sofa::defaulttype::Vec3Types>(m_mechanicalObject.getValue (),m_topology.getValue ());
     m_bending_topology = PBDBendingTopology(m_mechanicalObject.getValue (),m_topology.getValue ());
+    m_bending_topology.dampHighFrequencies (m_alpha_too.getValue ());
 }
 
 void PBDIsometricBending::solve(sofa::simulation::Node* node)
 {
     WriteCoord p = m_pbdObject->getFreePosition ();
+    WriteDeriv v = m_pbdObject->getFreeVelocity ();
     uint pointCount = p.size();
 
     if(m_indices.getValue().empty())
@@ -38,7 +40,7 @@ void PBDIsometricBending::solve(sofa::simulation::Node* node)
                     const auto& displacement = ((l-voisin.second)/(l * wSum)) * p_ij;
                     p[a]            -= w0 * displacement;
                     p[voisin.first] += w1 * displacement;
-                    correction(a,voisin.first,p);
+                    correction(a,voisin.first,p,v);
                 }
             }
         }
@@ -59,7 +61,7 @@ void PBDIsometricBending::solve(sofa::simulation::Node* node)
                     const auto& dp = (0.5*(l-voisin.second)/l) * p_ij;
                     p[a]            -= dp;
                     p[voisin.first] += dp;
-                    correction (a,voisin.first,p);//PBDBending
+                    correction (a,voisin.first,p,v);//PBDBending
                 }
             }
         }

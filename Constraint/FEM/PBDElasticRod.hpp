@@ -39,20 +39,19 @@ public:
                                   const SReal w0, const SReal w1,
                                   WriteCoordR& p,
                                   const Eigen::Vector3d& bending_twisting,
-                                  const uint e)
+                                  const sofa::core::topology::Topology::Edge& edge)
     {
         static const SReal eps = 1e-6;
-
-        const uint a = eRod.beginIdx (e);
-        const uint z = eRod.endIdx(e);
-
+        uint a = edge[0];
+        uint z = edge[1];
         //  COMPUTE STRETCHING AND SHEARING
         vec3 d3(static_cast<SReal>(2.0) * (u[a].x() * u[a].z() + u[a].w() * u[a].y()),
                 static_cast<SReal>(2.0) * (u[a].y() * u[a].z() - u[a].w() * u[a].x()),
                 u[a].w() * u[a].w() - u[a].x() * u[a].x() - u[a].y() * u[a].y() + u[a].z() * u[a].z());	//third director d3 = q0 * e_3 * q0_conjugate
 
-        vec3 gamma = (p[z].getCenter ()- p[a].getCenter ()) / eRod.length(e) - d3;
-        gamma     /= (w1 + w0) / eRod.length(a)+ eRod.wq(a) * static_cast<SReal>(4.0)*eRod.length(e) + eps;
+        vec3 gamma = (p[z].getCenter ()- p[a].getCenter ()) / eRod.length(a) - d3;
+        gamma     /= (w1 + w0) / eRod.length(a)+ eRod.wq(a) * static_cast<SReal>(4.0)*eRod.length(a) + eps;
+
         p[a].getCenter () += eRod.wq(a) * w0 * gamma;
         p[z].getCenter () -= eRod.wq(z) * w1 * gamma;
         // Cs * q * e_3.conjugate (cheaper than quaternion product)

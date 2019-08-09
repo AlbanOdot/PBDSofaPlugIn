@@ -49,30 +49,27 @@ namespace sofa
 
 
                 helper::vector<Rigid> res;
-                int m = m_container->getNbPoints();
+                uint m = m_container->getNbPoints();
+
+                Vector3 from(0,0,1);
                 for  (int i=0; i<m-1; i++) {
 
                     Rigid R;
                     Vector3 P0(m_container->getPX(i),m_container->getPY(i),m_container->getPZ(i));
                     Vector3 P1(m_container->getPX(i+1),m_container->getPY(i+1),m_container->getPZ(i+1));
-                    Vector3 X = P1-P0;
-                    X.normalize();
-                    R.getCenter()=P0;
-                    Quaternionr q; q.setFromTwoVectors(Vector3r(0,0,1),Vector3r(X[0],X[1],X[2]));
-                    q.normalize ();
-                   // R.getOrientation().setFromUnitVectors (Vector3(0,0,1),X);
-                    R.getOrientation () = Quaternion(q.x (),q.y (),q.z (),q.w ());
+                    Vector3 to = P1-P0;
+                    to.normalize ();
+                    Quaternion dq;
+                    dq.setFromUnitVectors (from,to);
+                    R.getOrientation () = i == 0 ? dq : dq * res[i-1].getOrientation ();
+                    R.getCenter () = P0;
                     res.emplace_back(R);
-
+                    from = to;
                 }
-
-                int i = m-1;
-                {
-                    Rigid R;
-                    R.getCenter()=Vector3(m_container->getPX(i),m_container->getPY(i),m_container->getPZ(i));
-                    R.getOrientation() = res[res.size ()-1].getOrientation ();
-                    res.emplace_back(R);
-                }
+                Rigid R;
+                R.getOrientation () = res[m-2].getOrientation ();
+                R.getCenter () = Vector3(m_container->getPX(m-1),m_container->getPY(m-1),m_container->getPZ(m-1));
+                res.emplace_back(R);
                 d_out_pos.setValue(res);
             }
 

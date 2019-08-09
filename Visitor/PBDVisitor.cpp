@@ -37,6 +37,7 @@
 #include <sofa/core/behavior/MultiVec.h>
 
 #include <sofa/helper/AdvancedTimer.h>
+#include "../AnimationLoop/PBDAnimationLoop.hpp"
 
 //#include "MechanicalIntegration.h"
 
@@ -144,6 +145,19 @@ Visitor::Result PBDVisitor::processNodeTopDown(simulation::Node* node)
         MechanicalProjectPositionAndVelocityVisitor(&m_mparams, nextTime,
                                                     sofa::core::VecCoordId::position(), sofa::core::VecDerivId::velocity()
                                                     ).execute( node );
+
+        const auto& PBDconstraints = node->getContext()->getObjects<PBDBaseConstraint>(BaseContext::SearchDown);
+        int nbIter = ( node->getContext ()->getObjects<PBDAnimationLoop>(BaseContext::SearchDown))[0]->getNbIter();
+
+        //From here we solve all of the constraints -> solve on p
+        for(int iter = 0 ; iter < nbIter; ++iter)
+        {
+            for(auto& constraint : PBDconstraints)
+            {
+                constraint->solve(node);
+            }
+        }
+        
         MechanicalPropagateOnlyPositionAndVelocityVisitor(&m_mparams, nextTime,
                                                           VecCoordId::position(),
                                                           VecDerivId::velocity(), true).execute( node );

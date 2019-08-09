@@ -11,7 +11,7 @@ class PBDBending : public PBDElasticConstraint
 public:
     typedef sofa::defaulttype::Vec3 Vec3;
     PBDBending(sofa::simulation::Node* gnode = nullptr) : PBDElasticConstraint(gnode),
-        m_alpha_wann(initData(&m_alpha_wann,(SReal)1.0,"a1","Low frequency damping")),
+        m_alpha_wann(initData(&m_alpha_wann,(SReal)0,"a1","Low frequency damping")),
         m_alpha_too(initData(&m_alpha_too,(SReal)1.0,"a2","High frequency damping"))
     {}
     /*
@@ -42,7 +42,7 @@ protected:
      *
      * Output : Compute and apply the correction to the concerned vertices
      */
-    void correction(uint a, uint b, WriteCoord&p);
+    void correction(uint a, uint b, WriteCoord&p,WriteDeriv& v);
 protected:
     Data<SReal> m_alpha_wann;
     Data<SReal> m_alpha_too;

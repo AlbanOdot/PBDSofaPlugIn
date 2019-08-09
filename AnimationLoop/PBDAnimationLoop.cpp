@@ -91,17 +91,7 @@ static inline void beginEventAndComputeSofaPhysics(const sofa::core::ExecParams*
                                             sofa::simulation::Node* gnode,
                                             const SReal dt)
 {
-    {
-        AnimateBeginEvent ev ( dt );
-        PropagateEventVisitor act ( params, &ev );
-        gnode->execute ( act );
-    }
 
-    BehaviorUpdatePositionVisitor beh(params , dt);
-    gnode->execute(&beh);
-
-    AnimateVisitor act(params, dt);
-    gnode->execute ( act );
 }
 
 static inline void EndEventAndUpdateVisitors(const sofa::core::ExecParams* params,
@@ -137,16 +127,47 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         dt = gnode->getDt();
 
     double startTime = gnode->getTime();
+    {
+        AnimateBeginEvent ev ( dt );
+        PropagateEventVisitor act ( params, &ev );
+        gnode->execute ( act );
+    }
 
-    beginEventAndComputeSofaPhysics(params,gnode,dt);
+    BehaviorUpdatePositionVisitor beh(params , dt);
+    gnode->execute(&beh);
 
+    //update the orientations
+    m_solver.setupOrientations (dt);
     //Solve each constraints one by one
     m_solver.solvePBDConstraints(params);
 
     //Integrate as said in the PBD method
     m_solver.integrate (dt);
 
+    AnimateVisitor act(params, dt);
+    gnode->execute ( act );
+
     gnode->setTime ( startTime + dt );
 
-    EndEventAndUpdateVisitors(params,gnode,dt);
+    gnode->execute< UpdateSimulationContextVisitor >(params);
+
+    {
+        AnimateEndEvent ev ( dt );
+        PropagateEventVisitor act ( params, &ev );
+        gnode->execute ( act );
+    }
+
+    //Visual Information update: Ray Pick add a MechanicalMapping used as VisualMapping
+    gnode->execute< UpdateMappingVisitor >(params);
+    {
+        UpdateMappingEndEvent ev ( dt );
+        PropagateEventVisitor act ( params , &ev );
+        gnode->execute ( act );
+    }
+
+    if (!SOFA_NO_UPDATE_BBOX)
+    {
+        sofa::helper::ScopedAdvancedTimer timer("UpdateBBox");
+        gnode->execute< UpdateBoundingBoxVisitor >(params);
+    }
 }
