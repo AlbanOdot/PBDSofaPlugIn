@@ -121,36 +121,6 @@ void PBDStrainEnergy::solve(sofa::simulation::Node * node)
                         p2 -= lambda * m_mass.w(t[2]) * d[2];
                         p3 -= lambda * m_mass.w(t[3]) * d[3];
                     }
-
-                    if(m_volumeConservation.getValue())
-                    {
-                        Matrix3 P;
-                        P.x() = p1 - p0;
-                        P.y() = p2 - p0;
-                        P.z() = p3 - p0;
-
-                        Vec3 p2cp3 = P.y().cross(P.z());
-                        //        actual volume - rest volume
-                        SReal C = dot(P.x(),p2cp3) - Dm_inv[tri].first;
-                        //gradient
-                        d[1] = p2cp3;
-                        d[2] = P.z().cross(P.x());
-                        d[3] = P.x().cross(P.y());
-                        d[0] = - d[1] - d[2] - d[3];
-                        SReal sumGradSquared =
-                                m_mass.w(t[0]) * d[0].norm2 ()
-                                + m_mass.w(t[1]) * d[1].norm2 ()
-                                + m_mass.w(t[2]) * d[2].norm2 ()
-                                + m_mass.w(t[3]) * d[3].norm2 ();
-                        if(sumGradSquared > eps)
-                        {
-                            SReal lambda = C/sumGradSquared;
-                            p0 -= lambda * m_mass.w(t[0]) * d[0];
-                            p1 -= lambda * m_mass.w(t[1]) * d[1];
-                            p2 -= lambda * m_mass.w(t[2]) * d[2];
-                            p3 -= lambda * m_mass.w(t[3]) * d[3];
-                        }
-                    }
                 }
             }
         }

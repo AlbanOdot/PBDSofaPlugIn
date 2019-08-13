@@ -63,7 +63,8 @@ protected:
     {}
     virtual ~PBDConstraint() { }
 public:
-    sofa::component::container::MechanicalObject< T >*  mechanical() {return m_mechanicalObject.getValue();}
+    inline sofa::component::container::MechanicalObject< T >*  mechanical() {return m_mechanicalObject.getValue();}
+    inline sofa::core::topology::BaseMeshTopology * topology() {return m_topology.getValue ();}
     PBDObject<T> * getPBDObject() { return m_pbdObject;}
     void linkPBDObject(PBDObject<T>* obj) { m_pbdObject = obj;}
 protected:

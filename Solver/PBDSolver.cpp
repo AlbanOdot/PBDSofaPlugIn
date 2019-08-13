@@ -125,7 +125,6 @@ void PBDSolver::computeVec3Integration(std::unordered_map<MechanicalObject<Vec3T
 
 void PBDSolver::computeRigidIntegration(sofa::simulation::Node* node,SReal damping_times_inv_dt)
 {
-    // Loop over r3m ??
     std::vector<OrientedConstraint*>  orientedConstraints = node->getContext()->getObjects<OrientedConstraint>(sofa::core::objectmodel::BaseContext::SearchDown);
     for(OrientedConstraint * c : orientedConstraints)
     {
@@ -134,15 +133,35 @@ void PBDSolver::computeRigidIntegration(sofa::simulation::Node* node,SReal dampi
         WriteCoordR x = c->mechanical ()->writePositions ();
         WriteCoordR p = c->getPBDObject ()->getFreePosition ();
         WriteDerivR v = c->mechanical ()->writeVelocities ();
-        for(uint j = 0; j < omega.size (); ++j)
+        const auto& edges = c->topology ()->getEdges ();
+        uint size = edges.size();
+        uint s1 = size - 1;
+        for(uint e = 0; e < size; ++e)
         {
-            omega[j] = (2.0*damping_times_inv_dt)*(c->orientation().orientation (j).conjugate()*u[j]).vec();
-            c->orientation().orientation (j) = u[j];
-            v[j] += RigidTypes::coordDifference (p[j],x[j]) * damping_times_inv_dt;
-            v[j].getAngular() = sofa::defaulttype::Vec3(omega[j][0],omega[j][1],omega[j][2]);
-            x[j].getCenter () = p[j].getCenter ();
-            x[j].getOrientation ().set(u[j].x (),u[j].y (),u[j].z (),u[j].w ());
+            omega[e] = (2.0*damping_times_inv_dt)*(c->orientation().orientation (e).conjugate()*u[e]).vec();
+            c->orientation().orientation (e) = u[e];
+
+            //La vitesse angulaire est le slerp des edges l'entourant
+            //Quaternionr ov(0,omega[e][0],omega[e][1],omega[e][2]); //ov.slerp(0.5,Quaternionr(0,omega[e+1][0],omega[e+1][1],omega[e+1][2]));
+            v[edges[e][1]].getVCenter () += (p[edges[e][1]].getCenter () - x[edges[e][1]].getCenter ())* damping_times_inv_dt;
+            v[edges[e][1]].getAngular().set(omega[e][0],omega[e][1],omega[e][2]);
+
+            //Le quaternion est l'interpolation linéaire associe des quat des segments entourant le sommet
+            //Quaternionr qx(u[e]); //qx.slerp(0.5,u[e+1]);
+            x[edges[e][1]].getCenter () = p[edges[e][1]].getCenter ();
+            x[edges[e][1]].getOrientation ().set(u[e].x (),u[e].y (),u[e].z (),u[e].w ());
         }
+        //Cas particulier pour le premier sommet
+        v[edges[0][0]].getVCenter () += (p[edges[0][0]].getCenter () - x[edges[0][0]].getCenter ()) * damping_times_inv_dt;
+        v[edges[0][0]].getAngular().set(omega[0][0],omega[0][1],omega[0][2]);
+        x[edges[0][0]].getCenter () = p[0].getCenter ();
+        x[edges[0][0]].getOrientation ().set(u[0].x (),u[0].y (),u[0].z (),u[0].w ());
+
+//        //Cas particulier pour le dernier sommet
+//        v[edges[s1][1]].getVCenter () += (p[edges[s1][1]].getCenter () - x[edges[s1][1]].getCenter ()) * damping_times_inv_dt;
+//        v[edges[s1][1]].getAngular() = sofa::defaulttype::Vec3(omega[s1][0],omega[s1][1],omega[s1][2]);
+//        x[edges[s1][1]].getCenter () = p[edges[s1][1]].getCenter ();
+//        x[edges[s1][1]].getOrientation ().set(u[s1].x (),u[s1].y (),u[s1].z (),u[s1].w ());
     }
 
 }

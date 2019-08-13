@@ -90,38 +90,6 @@ void PBDFEMTetra::solve(sofa::simulation::Node * node)
                 p[t[2]] -= (lagrangeMul * m_mass.w(t[2])) * gradC[2];
                 p[t[3]] -= (lagrangeMul * m_mass.w(t[3])) * gradC[3];
             }
-
-            if(m_volumeConservation.getValue())
-            {
-                Matrix3 Ds;
-                Ds.x() = p[t[0]] - p[t[3]];
-                Ds.y() = p[t[1]] - p[t[3]];
-                Ds.z() = p[t[2]] - p[t[3]];
-
-                Vec3 p2cp3 = Ds.y().cross(Ds.z());
-                //            actual volume - rest volume
-                SReal C = dot(Ds.x(),p2cp3) - 6.0*Dm_inv[i].first;
-                std::cout << " C : "<<C<<std::endl;
-                //gradient
-                gradC[1] = p2cp3;
-                gradC[2] = Ds.z().cross(Ds.x());
-                gradC[3] = Ds.x().cross(Ds.y());
-                gradC[0] = - gradC[1] - gradC[2] - gradC[3];
-                SReal sumGradSquared =
-                        m_mass.w(t[0]) * gradC[0].norm2 ()
-                        + m_mass.w(t[1]) * gradC[1].norm2 ()
-                        + m_mass.w(t[2]) * gradC[2].norm2 ()
-                        + m_mass.w(t[3]) * gradC[3].norm2 ();
-                if(sumGradSquared > eps)
-                {
-                    SReal lambda = C/sumGradSquared;
-                    p[t[0]] -= (lambda * m_mass.w(t[0])) * gradC[0];
-                    p[t[1]] -= (lambda * m_mass.w(t[1])) * gradC[1];
-                    p[t[2]] -= (lambda * m_mass.w(t[2])) * gradC[2];
-                    p[t[3]] -= (lambda * m_mass.w(t[3])) * gradC[3];
-                }
-            }
-
         }
     }
 }

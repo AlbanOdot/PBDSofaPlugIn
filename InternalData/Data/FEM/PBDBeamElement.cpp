@@ -13,8 +13,7 @@ void PBDBeamElement::init()
     bool color = false;
     for(uint i = 0; i < edges.size () - 1; ++i)
     {
-        uint a = i+1 == edges.size () ? i : i+1;
-        m_averageLength.emplace_back(0.5 * ( (rest[edges[i][0]].getCenter ()-rest[edges[i][1]].getCenter ()).norm () + (rest[edges[a][0]].getCenter ()-rest[edges[a][1]].getCenter ()).norm ()));
+        m_averageLength.emplace_back(0.5 * ( (rest[edges[i][0]].getCenter ()-rest[edges[i][1]].getCenter ()).norm () + (rest[edges[i+1][0]].getCenter ()-rest[edges[i+1][1]].getCenter ()).norm ()));
         m_color.emplace_back(color);
         color = !color;
     }

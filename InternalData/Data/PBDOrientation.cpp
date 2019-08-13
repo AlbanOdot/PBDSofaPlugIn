@@ -9,10 +9,13 @@ PBDOrientation::PBDOrientation(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
 void PBDOrientation::init()
 {
     const auto& rest = m_mechanicalObject->readRestPositions ();
-    for(uint i = 0; i < rest.size (); ++i)
+    const auto& edges = m_sofa_topology->getEdges ();
+    for(const auto& e : edges)
     {
-        const auto& qS = rest[i].getOrientation ();
-        Quaternionr q(qS[3],qS[0],qS[1],qS[2]);
+        const auto& q0 = rest[e[0]].getOrientation ();
+        const auto& q1 = rest[e[1]].getOrientation ();
+        Quaternion qe; qe.slerp (q0,q1,0.5);
+        Quaternionr q(qe[3],qe[0],qe[1],qe[2]);
         //Orientation
         m_orientation.emplace_back(q);
         m_freeOrientation.emplace_back(q);
@@ -21,9 +24,9 @@ void PBDOrientation::init()
         m_torque.emplace_back(Eigen::Vector3d(0,0,0));
         m_inertia.emplace_back(Eigen::Vector3d(1,1,1));
     }
-    for(uint i = 0; i < rest.size(); ++i)
+    for(uint i = 0; i < m_orientation.size(); ++i)
     {
-        uint a = i == rest.size() ? i : i+1;
+        uint a = i == edges.size() - 1 ? i : i+1;
         Quaternionr rd = m_orientation[i].conjugate () * m_orientation[a];
         Quaternionr omega_plus, omega_minus;
         omega_plus.coeffs() = rd.coeffs() + Quaternionr(1, 0, 0, 0).coeffs();
