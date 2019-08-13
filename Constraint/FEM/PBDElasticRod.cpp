@@ -42,9 +42,10 @@ void PBDElasticRod::solve(sofa::simulation::Node* node)
     WriteCoordR p = m_pbdObject->getFreePosition ();
     const auto& edges = m_topology.getValue ()->getEdges ();
     uint size = edges.size();
+    uint step = (size % 2) == 0 ? 2 : 1;
     for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
     {
-        for(uint e = 0 ; e < size ; ++e )
+        for(uint e = 0 ; e < size ; e += step )
         {
             uint nextQuat = e < size - 1  ? e+1 : e;
             const sofa::core::topology::Topology::Edge& edge = edges[e];
@@ -76,28 +77,28 @@ void PBDElasticRod::solve(sofa::simulation::Node* node)
 
 void PBDElasticRod::draw(const sofa::core::visual::VisualParams* vparams)
 {
-//    //	unsigned int i;
-//    vparams->drawTool()->saveLastState();
+    //	unsigned int i;
+    vparams->drawTool()->saveLastState();
 
-//    const auto& x = m_mechanicalObject.getValue ()->read(sofa::core::ConstVecCoordId::position())->getValue();
+    const auto& x = m_mechanicalObject.getValue ()->read(sofa::core::ConstVecCoordId::position())->getValue();
 
-//    if (vparams->displayFlags().getShowWireFrame())
-//        vparams->drawTool()->setPolygonMode(0,true);
+    if (vparams->displayFlags().getShowWireFrame())
+        vparams->drawTool()->setPolygonMode(0,true);
 
-//    const auto& edges = m_topology.getValue ()->getEdges ();
-//    uint size = edges.size();
-//    for(uint e = 0 ; e < size ; ++e )
-//    {
-//        //This will compute the bending deformation.
-//        uint nextQuat = e < size - 1  ? e+1 : e;
-//        Quaternionr omega   = m_orientation.freeOrientation (e).conjugate() * m_orientation.freeOrientation (nextQuat);   //darboux vector
-//        omega.coeffs()      = omega.coeffs() - m_orientation.restDarboux(e).coeffs(); //delta Omega with - Omega_0
-//        float coef = std::min(omega.squaredNorm ()* 1e5,1.0);
-//        Vec<4,float> color(coef,0.0f,1.0f-coef,1.0f);
-//        vparams->drawTool()->drawCylinder (x[edges[e][0]].getCenter (),x[edges[e][1]].getCenter (),0.025,color);
-//    }
-//    if (vparams->displayFlags().getShowWireFrame())
-//        vparams->drawTool()->setPolygonMode(0,false);
+    const auto& edges = m_topology.getValue ()->getEdges ();
+    uint size = edges.size();
+    for(uint e = 0 ; e < size ; ++e )
+    {
+        //This will compute the bending deformation.
+        uint nextQuat = e < size - 1  ? e+1 : e;
+        Quaternionr omega   = m_orientation.freeOrientation (e).conjugate() * m_orientation.freeOrientation (nextQuat);   //darboux vector
+        omega.coeffs()      = omega.coeffs() - m_orientation.restDarboux(e).coeffs(); //delta Omega with - Omega_0
+        float coef = std::min(omega.squaredNorm ()* 1e5,1.0);
+        Vec<4,float> color(coef,0.0f,1.0f-coef,1.0f);
+        vparams->drawTool()->drawCylinder (x[edges[e][0]].getCenter (),x[edges[e][1]].getCenter (),0.025,color);
+    }
+    if (vparams->displayFlags().getShowWireFrame())
+        vparams->drawTool()->setPolygonMode(0,false);
 
-//    vparams->drawTool()->restoreLastState();
+    vparams->drawTool()->restoreLastState();
 }
