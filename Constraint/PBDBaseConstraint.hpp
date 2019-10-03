@@ -31,7 +31,7 @@ public:
     /*
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(sofa::simulation::Node * node) = 0;
+    virtual bool solve(sofa::simulation::Node * node) = 0;
     /*
      * Inputs : int -> Number of iterations
      *

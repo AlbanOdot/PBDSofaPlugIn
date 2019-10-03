@@ -5,7 +5,7 @@
 template < class T>
 PBDVertexMass<T>::PBDVertexMass(Mech * m, Topo * t) : PBDBaseConstraintData<T> (m,t)
 {
-    if( m && t )
+    if( m )
         init ();
 }
 
@@ -30,6 +30,6 @@ void PBDVertexMass<T>::update()
 {
     m_mass.clear();
     m_weight.clear();
-    if( PBDBaseConstraintData<T>::m_mechanicalObject && PBDBaseConstraintData<T>::m_sofa_topology )
+    if( PBDBaseConstraintData<T>::m_mechanicalObject  )
         init ();
 }

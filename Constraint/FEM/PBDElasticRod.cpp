@@ -36,43 +36,44 @@ void PBDElasticRod::bwdInit ()
 }
 
 
-void PBDElasticRod::solve(sofa::simulation::Node* node)
+bool PBDElasticRod::solve(sofa::simulation::Node* node)
 {
 
     WriteCoordR p = m_pbdObject->getFreePosition ();
     const auto& edges = m_topology.getValue ()->getEdges ();
     uint size = edges.size();
     uint step = (size % 2) == 0 ? 2 : 1;
-    for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
-    {
-        for(uint e = 0 ; e < size ; e += step )
-        {
-            uint nextQuat = e < size - 1  ? e+1 : e;
-            const sofa::core::topology::Topology::Edge& edge = edges[e];
-            if(m_elastic_rod.color (e) == PBDBeamElement::RED)
-                correction(p[edge[0]],p[edge[1]],
-                        m_elastic_rod.length (e),
-                        m_mass.w(edge[0]),m_mass.w (edge[1]),//3 firsts row are for the stretch
-                        m_orientation.freeOrientation (e),m_orientation.freeOrientation (nextQuat),//The 4 next are for the bend
-                        m_elastic_rod.wq (e),m_elastic_rod.wq (nextQuat),
-                        m_orientation.restDarboux (e),
-                        m_bendingAndTwistingKs
-                        );
-            uint opposite = size - 1 - e;
-            nextQuat = opposite < size - 1  ? opposite+1 : opposite;
-            const sofa::core::topology::Topology::Edge& op = edges[opposite];
-            if(m_elastic_rod.color (opposite) == PBDBeamElement::BLACK)
-                correction(p[op[0]],p[op[1]],
-                        m_elastic_rod.length (opposite),
-                        m_mass.w(op[0]),m_mass.w (op[1]),//3 firsts row are for the stretch
-                        m_orientation.freeOrientation (opposite),m_orientation.freeOrientation (nextQuat),//The 4 next are for the bend
-                        m_elastic_rod.wq (opposite),m_elastic_rod.wq (nextQuat),
-                        m_orientation.restDarboux (opposite),
-                        m_bendingAndTwistingKs
-                        );
+    bool modification = false;
 
-        }
+    for(uint e = 0 ; e < size ; e += step )
+    {
+        uint nextQuat = e < size - 1  ? e+1 : e;
+        const sofa::core::topology::Topology::Edge& edge = edges[e];
+        if(m_elastic_rod.color (e) == PBDBeamElement::RED)
+            modification |= correction(p[edge[0]],p[edge[1]],
+                    m_elastic_rod.length (e),
+                    m_mass.w(edge[0]),m_mass.w (edge[1]),//3 firsts row are for the stretch
+                    m_orientation.freeOrientation (e),m_orientation.freeOrientation (nextQuat),//The 4 next are for the bend
+                    m_elastic_rod.wq (e),m_elastic_rod.wq (nextQuat),
+                    m_orientation.restDarboux (e),
+                    m_bendingAndTwistingKs
+                    );
+        uint opposite = size - 1 - e;
+        nextQuat = opposite < size - 1  ? opposite+1 : opposite;
+        const sofa::core::topology::Topology::Edge& op = edges[opposite];
+        if(m_elastic_rod.color (opposite) == PBDBeamElement::BLACK)
+            modification |= correction(p[op[0]],p[op[1]],
+                    m_elastic_rod.length (opposite),
+                    m_mass.w(op[0]),m_mass.w (op[1]),//3 firsts row are for the stretch
+                    m_orientation.freeOrientation (opposite),m_orientation.freeOrientation (nextQuat),//The 4 next are for the bend
+                    m_elastic_rod.wq (opposite),m_elastic_rod.wq (nextQuat),
+                    m_orientation.restDarboux (opposite),
+                    m_bendingAndTwistingKs
+                    );
+
     }
+    return modification;
+
 }
 
 void PBDElasticRod::draw(const sofa::core::visual::VisualParams* vparams)
@@ -94,7 +95,10 @@ void PBDElasticRod::draw(const sofa::core::visual::VisualParams* vparams)
         Quaternionr omega   = m_orientation.freeOrientation (e).conjugate() * m_orientation.freeOrientation (nextQuat);   //darboux vector
         omega.coeffs()      = omega.coeffs() - m_orientation.restDarboux(e).coeffs(); //delta Omega with - Omega_0
         float coef = std::min(omega.squaredNorm ()* 1e5,1.0);
-        Vec<4,float> color(coef,0.0f,1.0f-coef,1.0f);
+        float B = coef < 0.50 ? 1.0-2.0*coef : 0.0;
+        float R = coef > 0.50 ? 2.0*coef : 0.0;
+        float G = coef >= 0.25 && coef <= 0.75 ? (coef <= 0.5 ? 4.0*(coef-0.25)  : 1.0-4.0*(coef-0.5)): 0.0;
+        Vec<4,float> color(R,G,B,1.0f);
         vparams->drawTool()->drawCylinder (x[edges[e][0]].getCenter (),x[edges[e][1]].getCenter (),0.025,color);
     }
     if (vparams->displayFlags().getShowWireFrame())

@@ -17,7 +17,7 @@ public:
     /*
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(sofa::simulation::Node* node);
+    virtual bool solve(sofa::simulation::Node* node);
     /*
      * Init function of sofa. It's called after the first init of the tree.
      */
@@ -42,7 +42,7 @@ protected:
      *
      * Output : Compute and apply the correction to the concerned vertices
      */
-    void correction(uint a, uint b, WriteCoord&p,WriteDeriv& v);
+    bool correction(uint a, uint b, WriteCoord&p,WriteDeriv& v);
 protected:
     Data<SReal> m_alpha_wann;
     Data<SReal> m_alpha_too;

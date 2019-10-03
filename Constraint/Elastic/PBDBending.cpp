@@ -15,45 +15,43 @@ void PBDBending::bwdInit ()
     m_bending_topology.dampHighFrequencies (m_alpha_too.getValue ());
 }
 
-void PBDBending::solve(sofa::simulation::Node * node)
+bool PBDBending::solve(sofa::simulation::Node * node)
 {
 
     WriteCoord p = m_pbdObject->getFreePosition ();
     WriteDeriv v = m_pbdObject->getFreeVelocity ();
     uint pointCount = p.size();
+    bool modification = false;
     if(m_indices.getValue().empty())
     {
-        for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
+        for( uint a = 0; a < pointCount; ++a)
         {
-            for( uint a = 0; a < pointCount; ++a)
+            //Get the edge of the corresponding neighbors
+            for( const auto& voisin : m_stretch_topology.data ()[a])
             {
-                //Get the edge of the corresponding neighbors
-                for( const auto& voisin : m_stretch_topology.data ()[a])
-                {
-                    correction(a,voisin.first,p,v);
-                }
+                modification |= correction(a,voisin.first,p,v);
             }
         }
     }
     else
     {
         const auto& idx = m_indices.getValue ();
-        for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
+
+        for( const auto& a : idx)
         {
-            for( const auto& a : idx)
+            //Get the edge of the corresponding neighbors
+            for( const auto& voisin : m_stretch_topology.data ()[a])
             {
-                //Get the edge of the corresponding neighbors
-                for( const auto& voisin : m_stretch_topology.data ()[a])
-                {
-                    correction(a,voisin.first,p,v);
-                }
+                modification |= correction(a,voisin.first,p,v);
             }
         }
+
     }
+    return modification;
 }
 
 
-void PBDBending::correction ( uint a, uint b,WriteCoord&p,WriteDeriv& v)
+bool PBDBending::correction ( uint a, uint b,WriteCoord&p,WriteDeriv& v)
 {
     static SReal eps = 1e-6;
     uint edge_ID = m_topology.getValue()->getEdgeIndex(a,b);
@@ -90,6 +88,8 @@ void PBDBending::correction ( uint a, uint b,WriteCoord&p,WriteDeriv& v)
             p[b]             += (m_K * s * w[1]) * gradC[1];
             p[data.first[0]] += (m_K * s * w[2]) * gradC[2];
             p[data.first[1]] += (m_K * s * w[3]) * gradC[3];
+            return true;
         }
+        return false;
     }
 }

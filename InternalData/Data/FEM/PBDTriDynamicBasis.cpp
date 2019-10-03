@@ -15,25 +15,17 @@ void PBDTriDynamicBasis::init()
     {
         const auto& t = triangles[i];
 
-        Vec3 normal0 = (rest[t[1]] - rest[t[0]]).cross(rest[t[2]] - rest[t[0]]);
-        SReal area = normal0.norm() * static_cast<SReal>(0.5);
+        SReal a = rest[t[1]][0] - rest[t[0]][0]; SReal b = rest[t[2]][0] - rest[t[0]][0];
+        SReal c = rest[t[1]][1] - rest[t[0]][1]; SReal d = rest[t[2]][1] - rest[t[0]][1];
 
-        Vec3 axis0_1 = rest[t[1]] - rest[t[0]];
-        axis0_1.normalize();
-        Vec3 axis0_2 = normal0.cross(axis0_1);
-        axis0_2.normalize();
+        // inverse
+        SReal det = a*d - b*c;
 
-        Vec2 p[3];
-        p[0] = Vec2(dot(rest[t[0]],axis0_2), dot(rest[t[0]],axis0_1));
-        p[1] = Vec2(dot(rest[t[1]],axis0_2), dot(rest[t[1]],axis0_1));
-        p[2] = Vec2(dot(rest[t[2]],axis0_2), dot(rest[t[2]],axis0_1));
-
-        Matrix2 P;
-        P(0, 0) = p[0][0] - p[2][0];
-        P(1, 0) = p[0][1] - p[2][1];
-        P(0, 1) = p[1][0] - p[2][0];
-        P(1, 1) = p[1][1] - p[2][1];
-        m_data.emplace_back(std::pair<float,Matrix2>(area,P.inverted()));
+        SReal s = static_cast<SReal>(1.0) / det;
+        Matrix2 Pinv;
+        Pinv(0,0) =  d*s; Pinv(0,1) = -b*s;
+        Pinv(1,0) = -c*s;  Pinv(1,1) =  a*s;
+        m_data.emplace_back(std::pair<float,Matrix2>(det/2.0,Pinv));
     }
 }
 

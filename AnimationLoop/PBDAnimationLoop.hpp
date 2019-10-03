@@ -83,6 +83,13 @@ protected :
 
     bool m_firststep;
 
+    SReal m_minTime = 1e308;
+
+    //Remove this later
+    std::ofstream myfile;
+    std::vector<SReal> e34,e629,e347,moyenne;
+    bool fileok = false;
+
 };
 
 

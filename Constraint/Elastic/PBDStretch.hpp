@@ -16,7 +16,7 @@ public:
     /*
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(sofa::simulation::Node * node);
+    virtual bool solve(sofa::simulation::Node * node);
 
     /*
      * Init function of sofa. It's called after the first init of the tree.

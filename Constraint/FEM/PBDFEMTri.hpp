@@ -1,21 +1,21 @@
-#ifndef PBDFEMTETRA_HPP
-#define PBDFEMTETRA_HPP
+#ifndef PBDFEMTRI_HPP
+#define PBDFEMTRI_HPP
 
 
 #include "PBDFEMConstraint.hpp"
 #include <SofaBaseLinearSolver/FullMatrix.h>
 #include <sofa/core/objectmodel/BaseContext.h>
 #include <sofa/simulation/Node.h>
-
+#include "../../InternalData/Data/FEM/PBDTriBasis.hpp"
 /**
- * @brief The PBDFEMTetra class
+ * @brief The PBDFEMTri class
  *  This class implement https://sci-hub.tw/10.1016/j.cag.2014.07.004
 */
 
-class PBDFEMTetra : public PBDFEMConstraint<sofa::defaulttype::Vec3Types>
+class PBDFEMTri : public PBDFEMConstraint<sofa::defaulttype::Vec3Types>
 {
 public:
-    PBDFEMTetra(sofa::simulation::Node* gnode = nullptr):PBDFEMConstraint<sofa::defaulttype::Vec3Types>(),
+    PBDFEMTri(sofa::simulation::Node* gnode = nullptr):PBDFEMConstraint<sofa::defaulttype::Vec3Types>(),
         m_shear(initData(&m_shear,Vec3(1,1,1),"shear","shear compliance")),
         m_stretch(initData(&m_stretch,Vec3(1,1,1),"stretch","stretch compliance")),
         m_volumeConservation(initData(&m_volumeConservation,false,"volumeConservation","enforce the constraint to keep the same volume"))
@@ -30,17 +30,6 @@ public:
      */
     virtual void bwdInit () override;
 
-    static inline void computeGreenStrainAndPiolaStressInversion(const Matrix3 &F,
-                                                                 const Real restVolume,
-                                                                 const Real mu, const Real lambda, Matrix3 &epsilon, Matrix3 &sigma, Real &energy);
-
-    static inline void computeGreenStrainAndPiolaStress(const Matrix3 &F,
-                                                        const Real restVolume,
-                                                        const Real mu, const Real lambda, Matrix3 &epsilon, Matrix3 &sigma, Real &energy);
-
-    static inline void computeGradCGreen(Real restVolume, const Matrix3 &invRestMat, const Matrix3 &sigma, Vec3 *J);
-
-    virtual void draw(const sofa::core::visual::VisualParams* vparams) override;
     /// Construction method called by ObjectFactory.
     template<class T>
     static typename T::SPtr create(T*, sofa::core::objectmodel::BaseContext* context, sofa::core::objectmodel::BaseObjectDescription* arg)
@@ -56,7 +45,7 @@ protected:
     Vec3 m_sshear;
     Data<Vec3> m_stretch;
     Data<bool> m_volumeConservation;
-    FEMTetraData m_basis;
+    PBDTriBasis m_basis;
     SReal m_lambda;
     SReal m_mu;
 };

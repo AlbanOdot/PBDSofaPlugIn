@@ -8,9 +8,10 @@
 #include <SofaBaseMechanics/MechanicalObject.h>
 #include <sofa/core/behavior/ForceField.inl>
 #include <SofaBaseTopology/TopologyData.inl>
+#include <omp.h>
 
 int PBDFEMTetraClass = sofa::core::RegisterObject("Constraint that correct deformed shape.")
-                          .add< PBDFEMTetra >();
+                       .add< PBDFEMTetra >();
 
 using namespace sofa::defaulttype;
 using namespace	sofa::component::topology;
@@ -27,71 +28,69 @@ void PBDFEMTetra::bwdInit ()
     SReal E = m_young_modulus.getValue ();
     m_lambda = (E*nu) / (( 1.0 + nu ) * ( 1.0 - 2.0 * nu ));
     m_mu = E / (2.0 * ( 1.0 + nu ));
-    dt2 = static_cast<sofa::simulation::Node*>(this->getContext())->getDt ();
-    dt2 *= dt2;
 }
 
-void PBDFEMTetra::solve(sofa::simulation::Node * node)
+bool PBDFEMTetra::solve(sofa::simulation::Node * node)
 {
     static SReal eps = 1e-6;
     static SReal one_over_6 = 1.0/6.0;
     const auto& Dm_inv = m_basis.data ();
     const uint tetCount = m_topology.getValue()->getNbTetrahedra ();
     WriteCoord p = m_pbdObject->getFreePosition ();
-    for(uint iter = 0; iter < m_nbIter.getValue(); ++iter)
+    bool modification = false;
+    for(uint i = 0; i < tetCount; ++i)
     {
+        const auto& t = m_topology.getValue()->getTetra (i);
+        //First compute Ds to get F
+        // Determine \partial x/\partial m_i
+        const Matrix3& invRestMat = Dm_inv[i].second;
+        Matrix3 F;
+        const Vec3 p14 = p[t[0]] - p[t[3]];
+        const Vec3 p24 = p[t[1]] - p[t[3]];
+        const Vec3 p34 = p[t[2]] - p[t[3]];
+        F(0, 0) = p14[0]*invRestMat(0, 0) + p24[0]*invRestMat(1, 0) + p34[0]*invRestMat(2, 0);
+        F(0, 1) = p14[0]*invRestMat(0, 1) + p24[0]*invRestMat(1, 1) + p34[0]*invRestMat(2, 1);
+        F(0, 2) = p14[0]*invRestMat(0, 2) + p24[0]*invRestMat(1, 2) + p34[0]*invRestMat(2, 2);
 
-        for(uint i = 0; i < tetCount; ++i)
+        F(1, 0) = p14[1]*invRestMat(0, 0) + p24[1]*invRestMat(1, 0) + p34[1]*invRestMat(2, 0);
+        F(1, 1) = p14[1]*invRestMat(0, 1) + p24[1]*invRestMat(1, 1) + p34[1]*invRestMat(2, 1);
+        F(1, 2) = p14[1]*invRestMat(0, 2) + p24[1]*invRestMat(1, 2) + p34[1]*invRestMat(2, 2);
+
+        F(2, 0) = p14[2]*invRestMat(0, 0) + p24[2]*invRestMat(1, 0) + p34[2]*invRestMat(2, 0);
+        F(2, 1) = p14[2]*invRestMat(0, 1) + p24[2]*invRestMat(1, 1) + p34[2]*invRestMat(2, 1);
+        F(2, 2) = p14[2]*invRestMat(0, 2) + p24[2]*invRestMat(1, 2) + p34[2]*invRestMat(2, 2);
+        SReal volume = one_over_6 * dot(p14,p24.cross(p34));
+        Matrix3 piolaKirchhoff,epsilon;
+        SReal energy;
+        //Only goes in if the tetraheadron is inside-out or too flat (i.e 20% volume remaining)
+        if( volume / Dm_inv[i].first < 0.2 )
         {
-            const auto& t = m_topology.getValue()->getTetra (i);
-            //First compute Ds to get F
-            // Determine \partial x/\partial m_i
-            const Matrix3& invRestMat = Dm_inv[i].second;
-            Matrix3 F;
-            const Vec3 p14 = p[t[0]] - p[t[3]];
-            const Vec3 p24 = p[t[1]] - p[t[3]];
-            const Vec3 p34 = p[t[2]] - p[t[3]];
-            F(0, 0) = p14[0]*invRestMat(0, 0) + p24[0]*invRestMat(1, 0) + p34[0]*invRestMat(2, 0);
-            F(0, 1) = p14[0]*invRestMat(0, 1) + p24[0]*invRestMat(1, 1) + p34[0]*invRestMat(2, 1);
-            F(0, 2) = p14[0]*invRestMat(0, 2) + p24[0]*invRestMat(1, 2) + p34[0]*invRestMat(2, 2);
-
-            F(1, 0) = p14[1]*invRestMat(0, 0) + p24[1]*invRestMat(1, 0) + p34[1]*invRestMat(2, 0);
-            F(1, 1) = p14[1]*invRestMat(0, 1) + p24[1]*invRestMat(1, 1) + p34[1]*invRestMat(2, 1);
-            F(1, 2) = p14[1]*invRestMat(0, 2) + p24[1]*invRestMat(1, 2) + p34[1]*invRestMat(2, 2);
-
-            F(2, 0) = p14[2]*invRestMat(0, 0) + p24[2]*invRestMat(1, 0) + p34[2]*invRestMat(2, 0);
-            F(2, 1) = p14[2]*invRestMat(0, 1) + p24[2]*invRestMat(1, 1) + p34[2]*invRestMat(2, 1);
-            F(2, 2) = p14[2]*invRestMat(0, 2) + p24[2]*invRestMat(1, 2) + p34[2]*invRestMat(2, 2);
-            SReal volume = one_over_6 * dot(p14,p24.cross(p34));
-            Matrix3 piolaKirchhoff,epsilon;
-            SReal energy;
-            //Only goes in if the tetraheadron is inside-out or too flat (i.e 20% volume remaining)
-            if( volume / Dm_inv[i].first < 0.2 )
-            {
-                computeGreenStrainAndPiolaStressInversion(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,piolaKirchhoff,energy);
-            }
-            else
-            {
-                computeGreenStrainAndPiolaStress(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,piolaKirchhoff,energy);
-            }
-            Vec3 gradC[4];
-            computeGradCGreen (Dm_inv[i].first,Dm_inv[i].second,piolaKirchhoff,gradC);
-            SReal sumGradSquared =
-                    m_mass.w(t[0]) * gradC[0].norm2 ()
-                    + m_mass.w(t[1]) * gradC[1].norm2 ()
-                    + m_mass.w(t[2]) * gradC[2].norm2 ()
-                    + m_mass.w(t[3]) * gradC[3].norm2 ();
-
-            //Check if we reached an equilibrium
-            if(sumGradSquared > eps){
-                SReal lagrangeMul = energy / sumGradSquared;
-                p[t[0]] -= (lagrangeMul * m_mass.w(t[0])) * gradC[0];
-                p[t[1]] -= (lagrangeMul * m_mass.w(t[1])) * gradC[1];
-                p[t[2]] -= (lagrangeMul * m_mass.w(t[2])) * gradC[2];
-                p[t[3]] -= (lagrangeMul * m_mass.w(t[3])) * gradC[3];
-            }
+            computeGreenStrainAndPiolaStressInversion(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,piolaKirchhoff,energy);
         }
+        else
+        {
+            computeGreenStrainAndPiolaStress(F,Dm_inv[i].first,m_mu,m_lambda,epsilon,piolaKirchhoff,energy);
+        }
+        Vec3 gradC[4];
+        computeGradCGreen (Dm_inv[i].first,Dm_inv[i].second,piolaKirchhoff,gradC);
+        SReal sumGradSquared =
+                m_mass.w(t[0]) * gradC[0].norm2 ()
+                + m_mass.w(t[1]) * gradC[1].norm2 ()
+                + m_mass.w(t[2]) * gradC[2].norm2 ()
+                + m_mass.w(t[3]) * gradC[3].norm2 ();
+
+        //Check if we reached an equilibrium
+        if(sumGradSquared > eps){
+            SReal lagrangeMul = 0.5*energy / sumGradSquared;
+            p[t[0]] -= (lagrangeMul * m_mass.w(t[0])) * gradC[0];
+            p[t[1]] -= (lagrangeMul * m_mass.w(t[1])) * gradC[1];
+            p[t[2]] -= (lagrangeMul * m_mass.w(t[2])) * gradC[2];
+            p[t[3]] -= (lagrangeMul * m_mass.w(t[3])) * gradC[3];
+            modification = true;
+        }
+        modification |= false;
     }
+    return modification;
 }
 
 
@@ -118,8 +117,8 @@ void PBDFEMTetra::computeGradCGreen(Real restVolume, const Matrix3 &invRestMat, 
 }
 
 void PBDFEMTetra::computeGreenStrainAndPiolaStress(const Matrix3 &F, const Real restVolume,
-                                                      const Real mu, const Real lambda,
-                                                      Matrix3 &epsilon, Matrix3 &sigma, Real &energy)
+                                                   const Real mu, const Real lambda,
+                                                   Matrix3 &epsilon, Matrix3 &sigma, Real &energy)
 {
 
     // epsilon = 1/2 F^T F - I
@@ -154,8 +153,8 @@ void PBDFEMTetra::computeGreenStrainAndPiolaStress(const Matrix3 &F, const Real 
 }
 
 void PBDFEMTetra::computeGreenStrainAndPiolaStressInversion(const Matrix3 &F, const Real restVolume,
-                                                               const Real mu, const Real lambda,
-                                                               Matrix3 &epsilon, Matrix3 &sigma, Real &energy)
+                                                            const Real mu, const Real lambda,
+                                                            Matrix3 &epsilon, Matrix3 &sigma, Real &energy)
 {
     //compute Piola-Kirchhoff 1st stress tensor from St Venant Kirchhoff model
     // S = lambda*tr(E)*I + 2mu*E
@@ -174,8 +173,8 @@ void PBDFEMTetra::computeGreenStrainAndPiolaStressInversion(const Matrix3 &F, co
 
     // epsilon for hatF
     Vec3 epsilonHatF(	static_cast<Real>(0.5)*(hatF[0]*hatF[0] - static_cast<Real>(1.0)),
-                            static_cast<Real>(0.5)*(hatF[1]*hatF[1] - static_cast<Real>(1.0)),
-                            static_cast<Real>(0.5)*(hatF[2]*hatF[2] - static_cast<Real>(1.0)));
+            static_cast<Real>(0.5)*(hatF[1]*hatF[1] - static_cast<Real>(1.0)),
+            static_cast<Real>(0.5)*(hatF[2]*hatF[2] - static_cast<Real>(1.0)));
 
     const Real trace = epsilonHatF[0] + epsilonHatF[1] + epsilonHatF[2];
     const Real ltrace = lambda*trace;
@@ -234,10 +233,10 @@ void PBDFEMTetra::draw(const sofa::core::visual::VisualParams *vparams)
         uint c = t[2];
         uint d = t[3];
         Vec3Types::Coord center = (x[a]+x[b]+x[c]+x[d])*0.125;
-        Vec3Types::Coord pa = (x[a]+center)*(Real)0.666667;
-        Vec3Types::Coord pb = (x[b]+center)*(Real)0.666667;
-        Vec3Types::Coord pc = (x[c]+center)*(Real)0.666667;
-        Vec3Types::Coord pd = (x[d]+center)*(Real)0.666667;
+        Vec3Types::Coord pa = (x[a]);//+center);//*(Real)0.666667;
+        Vec3Types::Coord pb = (x[b]);//+center);//*(Real)0.666667;
+        Vec3Types::Coord pc = (x[c]);//+center);//*(Real)0.666667;
+        Vec3Types::Coord pd = (x[d]);//+center);//*(Real)0.666667;
 
         points[0].push_back(pa);
         points[0].push_back(pb);
@@ -261,10 +260,10 @@ void PBDFEMTetra::draw(const sofa::core::visual::VisualParams *vparams)
     Vec<4,float> color3;
     Vec<4,float> color4;
 
-    color1 = Vec<4,float>(0.047, 0.372, 0.074,1.0);
-    color2 = Vec<4,float>(0.047, 0.372, 0.074,1.0);
-    color3 = Vec<4,float>(0.047, 0.372, 0.074,1.0);
-    color4 = Vec<4,float>(0.8,0.8,0.8,1.0);
+    color1 = Vec<4,float>(0.2,0.2,0.8,1.0);
+    color2 = Vec<4,float>(0.2,0.2,0.8,1.0);
+    color3 = Vec<4,float>(0.2,0.2,0.8,1.0);
+    color4 = Vec<4,float>(0.2,0.2,0.8,1.0);
 
     vparams->drawTool()->drawTriangles(points[0], color1);
     vparams->drawTool()->drawTriangles(points[1], color2);

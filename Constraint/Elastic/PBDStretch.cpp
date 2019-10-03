@@ -11,7 +11,7 @@ void PBDStretch::bwdInit ()
     m_mass = PBDVertexMass<sofa::defaulttype::Vec3Types>(m_mechanicalObject.getValue (), m_topology.getValue ());
 }
 
-void PBDStretch::solve(sofa::simulation::Node * node)
+bool PBDStretch::solve(sofa::simulation::Node * node)
 {
     WriteCoord p = m_pbdObject->getFreePosition ();
     uint pointCount = p.size();
@@ -42,6 +42,7 @@ void PBDStretch::solve(sofa::simulation::Node * node)
             }
         }
     }
+    return true;
 }
 
 

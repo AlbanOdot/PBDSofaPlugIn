@@ -1,5 +1,5 @@
-#ifndef PBDVISITOR_HPP
-#define PBDVISITOR_HPP
+#ifndef PBDENDVISITOR_HPP
+#define PBDENDVISITOR_HPP
 
 #include <sofa/simulation/simulationcore.h>
 #include <sofa/simulation/Visitor.h>
@@ -20,20 +20,20 @@ namespace sofa
 namespace simulation
 {
 
-class PBDVisitor : public Visitor
+class PBDEndVisitor : public Visitor
 {
 
 protected :
     SReal dt;
     bool firstNodeVisited;
 public:
-    PBDVisitor(const core::ExecParams* params = core::ExecParams::defaultInstance());
-    PBDVisitor(const core::ExecParams* params, SReal dt);
+    PBDEndVisitor(const core::ExecParams* params = core::ExecParams::defaultInstance());
+    PBDEndVisitor(const core::ExecParams* params, SReal dt);
 
     void setDt(SReal v) { dt = v; }
     SReal getDt() const { return dt; }
 
-    virtual void processCollisionPipeline(simulation::Node* node, core::collision::Pipeline* obj);
+    virtual void EndCollisionPipeline(simulation::Node* node, core::collision::Pipeline* obj);
     virtual void processBehaviorModel(simulation::Node* node, core::BehaviorModel* obj);
     virtual void fwdInteractionForceField(simulation::Node* node, core::behavior::BaseInteractionForceField* obj);
     virtual void processOdeSolver(simulation::Node* node, core::behavior::OdeSolver* obj);

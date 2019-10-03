@@ -9,7 +9,7 @@ FEMTetraData::FEMTetraData(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
 
 void FEMTetraData::init()
 {
-    static SReal one_over_6 = 1.0/6.0;
+    static SReal one_over_6 = 1.0/6.0 + 1e-6;
 
     const auto& rest = m_mechanicalObject->readRestPositions ();
     const auto& tetrahedra = m_sofa_topology->getTetrahedra ();

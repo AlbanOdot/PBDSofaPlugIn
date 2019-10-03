@@ -8,6 +8,7 @@
 
 #include "./Data/Elastic/PBDVertexTopology.hpp"
 #include "./Data/Elastic/PBDBendingTopology.hpp"
+#include "./Data/PBDVertexMass.hpp"
 
 #include "./Data/FEM/StrainEnergyData.hpp"
 #include "./Data/FEM/FEMTetraData.hpp"
@@ -34,20 +35,27 @@ public:
 
     PBDObject(sofa::component::container::MechanicalObject<T> * obj = nullptr) : m_obj(obj)
     {
+        if(!obj)
+            return;
         m_freePos.setValue (obj->x.getValue());
         m_freeVel.setValue (obj->v.getValue());
+        m_mass = PBDVertexMass<T>(obj);
     }
 
-    inline void resetFreePosition();
-    inline void resetFreeVelocity();
+    void resetFreePosition();
+    void resetFreeVelocity();
 
     inline WriteCoord getFreePosition()    { return WriteCoord(m_freePos);}
     inline WriteDeriv getFreeVelocity()    { return WriteDeriv(m_freeVel);}
+    inline sofa::component::container::MechanicalObject<T> * getMechanical() {return m_obj;}
+    inline PBDVertexMass<T>  * getMass(){return &m_mass;}
 
 private:
+
     sofa::component::container::MechanicalObject<T> * m_obj;
     Coordinates m_freePos;
     Derivatives m_freeVel;
+    PBDVertexMass<T> m_mass;
 };
 
 template class PBDObject<sofa::defaulttype::Vec3Types>;

@@ -35,7 +35,7 @@ void PBDStrainEnergy::bwdInit ()
     m_sstretch[2] = m_stretch.getValue()[2] * 0.5;//yz
 }
 
-void PBDStrainEnergy::solve(sofa::simulation::Node * node)
+bool PBDStrainEnergy::solve(sofa::simulation::Node * node)
 {
     static SReal eps = 1e-6;
     static bool normalizeShear = false;
@@ -43,8 +43,8 @@ void PBDStrainEnergy::solve(sofa::simulation::Node * node)
     const auto& Dm_inv = m_basis.data ();
     const uint tetCount = m_topology.getValue()->getNbTetrahedra ();
     WriteCoord p = m_pbdObject->getFreePosition ();
-    for(uint iter = 0; iter < m_nbIter.getValue(); ++iter)
-    {
+    bool modification = false;
+
         for(uint tri = 0; tri < tetCount; ++tri)
         {
             const auto& t = m_topology.getValue()->getTetra (tri);
@@ -120,11 +120,13 @@ void PBDStrainEnergy::solve(sofa::simulation::Node * node)
                         p1 -= lambda * m_mass.w(t[1]) * d[1];
                         p2 -= lambda * m_mass.w(t[2]) * d[2];
                         p3 -= lambda * m_mass.w(t[3]) * d[3];
+                        modification = true;
                     }
+                    modification |= false;
                 }
             }
         }
-    }
+        return  modification;
 }
 
 

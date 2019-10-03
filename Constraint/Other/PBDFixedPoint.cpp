@@ -14,7 +14,7 @@ using namespace core::topology;
 
 int PBDFixedPointClass = sofa::core::RegisterObject("Constraint that fixes a point")
                          .add< PBDFixedPoint >();
-void PBDFixedPoint::solve(sofa::simulation::Node* node)
+bool PBDFixedPoint::solve(sofa::simulation::Node* node)
 {
     const ReadCoord& r = m_mechanicalObject.getValue ()->readRestPositions ();
     WriteCoord p = m_pbdObject->getFreePosition ();
@@ -25,6 +25,7 @@ void PBDFixedPoint::solve(sofa::simulation::Node* node)
         p[idx] = r[idx];
         v[idx] = v0;
     }
+    return false;
 }
 
 void PBDFixedPoint::draw(const sofa::core::visual::VisualParams *vparams)
@@ -43,7 +44,7 @@ void PBDFixedPoint::draw(const sofa::core::visual::VisualParams *vparams)
 
 int PBDFixedRigidPointClass = sofa::core::RegisterObject("Constraint that fixes a rigid point")
                               .add< PBDFixedRigidPoint >();
-void PBDFixedRigidPoint::solve(sofa::simulation::Node* node)
+bool PBDFixedRigidPoint::solve(sofa::simulation::Node* node)
 {
     const ReadCoordR& r = m_mechanicalObject.getValue ()->readRestPositions ();
     WriteCoordR p = m_pbdObject->getFreePosition ();
@@ -53,6 +54,7 @@ void PBDFixedRigidPoint::solve(sofa::simulation::Node* node)
         p[idx] = r[idx];
         v[idx] *= 0.0;
     }
+    return false;
 }
 
 void PBDFixedRigidPoint::draw(const sofa::core::visual::VisualParams *vparams)

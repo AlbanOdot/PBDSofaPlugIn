@@ -19,7 +19,7 @@
 *                                                                             *
 * Contact information: contact@sofa-framework.org                             *
 ******************************************************************************/
-#include "./PBDVisitor.hpp"
+#include "./PBDEndVisitor.hpp"
 #include "../Solver/PBDSolver.hpp"
 
 #include <sofa/simulation/MechanicalVisitor.h>
@@ -46,26 +46,26 @@ using namespace sofa::simulation;
 using namespace sofa;
 
 
-PBDVisitor::PBDVisitor(const core::ExecParams* params, SReal dt)
+PBDEndVisitor::PBDEndVisitor(const core::ExecParams* params, SReal dt)
     : Visitor(params)
     , dt(dt)
     , firstNodeVisited(false)
 {
 }
 
-PBDVisitor::PBDVisitor(const core::ExecParams* params)
+PBDEndVisitor::PBDEndVisitor(const core::ExecParams* params)
     : Visitor(params)
     , dt(0)
     , firstNodeVisited(false)
 {
 }
 
-void PBDVisitor::processBehaviorModel(simulation::Node*, core::BehaviorModel* obj)
+void PBDEndVisitor::processBehaviorModel(simulation::Node*, core::BehaviorModel* obj)
 {
     obj->updatePosition(getDt());
 }
 
-void PBDVisitor::fwdInteractionForceField(simulation::Node*, core::behavior::BaseInteractionForceField* obj)
+void PBDEndVisitor::fwdInteractionForceField(simulation::Node*, core::behavior::BaseInteractionForceField* obj)
 {
 
     MultiVecDerivId   ffId      = VecDerivId::externalForce();
@@ -74,26 +74,24 @@ void PBDVisitor::fwdInteractionForceField(simulation::Node*, core::behavior::Bas
     obj->addForce(&mparams, ffId);
 }
 
-void PBDVisitor::processCollisionPipeline(simulation::Node* node, core::collision::Pipeline* obj)
+void PBDEndVisitor::EndCollisionPipeline(simulation::Node* node, core::collision::Pipeline* obj)
 {
     CollisionBeginEvent evBegin;
     PropagateEventVisitor eventPropagation( params, &evBegin);
     eventPropagation.execute(node->getContext());
 
-    CollisionVisitor act(this->params);
-    node->execute(&act);
-
-    CollisionEndEvent evEnd;
-    PropagateEventVisitor eventPropagationEnd( params, &evEnd);
-    eventPropagationEnd.execute(node->getContext());
+    {
+        CollisionResponseVisitor act(this->params);
+        node->execute(&act);
+    }
 }
 
-void PBDVisitor::processOdeSolver(simulation::Node* node, core::behavior::OdeSolver* solver)
+void PBDEndVisitor::processOdeSolver(simulation::Node* node, core::behavior::OdeSolver* solver)
 {
     solver->solve(params, getDt());
 }
 
-Visitor::Result PBDVisitor::processNodeTopDown(simulation::Node* node)
+Visitor::Result PBDEndVisitor::processNodeTopDown(simulation::Node* node)
 {
     if (!node->isActive()) return Visitor::RESULT_PRUNE;
     if (node->isSleeping()) return Visitor::RESULT_PRUNE;
@@ -111,20 +109,13 @@ Visitor::Result PBDVisitor::processNodeTopDown(simulation::Node* node)
 
     if (node->collisionPipeline != NULL)
     {
-        processCollisionPipeline(node, node->collisionPipeline);
+        EndCollisionPipeline(node, node->collisionPipeline);
     }
     if (!node->solver.empty() )
     {
         sofa::helper::AdvancedTimer::StepVar timer("Mechanical",node);
         SReal nextTime = node->getTime() + dt;
-        {
-            IntegrateBeginEvent evBegin;
-            PropagateEventVisitor eventPropagation( this->params, &evBegin);
-            eventPropagation.execute(node);
-        }
 
-        MechanicalBeginIntegrationVisitor beginVisitor(this->params, dt);
-        node->execute(&beginVisitor);
 
         sofa::core::MechanicalParams m_mparams(*this->params);
         m_mparams.setDt(dt);
@@ -135,32 +126,10 @@ Visitor::Result PBDVisitor::processNodeTopDown(simulation::Node* node)
             simulation::MechanicalAccumulateConstraint(&cparams, core::MatrixDerivId::constraintJacobian(),constraintId).execute(node);
         }
 
-        for( unsigned i=0; i<node->solver.size(); i++ )
-        {
-            ctime_t t0 = begin(node, node->solver[i]);
-            node->solver[i]->solve(params, getDt());
-            end(node, node->solver[i], t0);
-        }
-
         MechanicalProjectPositionAndVelocityVisitor(&m_mparams, nextTime,
                                                     sofa::core::VecCoordId::position(), sofa::core::VecDerivId::velocity()
                                                     ).execute( node );
 
-        const auto& PBDconstraints = node->getContext()->getObjects<PBDBaseConstraint>(BaseContext::SearchDown);
-        int nbIter = ( node->getContext ()->getObjects<PBDAnimationLoop>(BaseContext::SearchDown))[0]->getNbIter();
-
-        //From here we solve all of the constraints -> solve on p
-        for(int iter = 0 ; iter < nbIter; ++iter)
-        {
-            for(auto& constraint : PBDconstraints)
-            {
-                constraint->solve(node);
-            }
-        }
-        
-        MechanicalPropagateOnlyPositionAndVelocityVisitor(&m_mparams, nextTime,
-                                                          VecCoordId::position(),
-                                                          VecDerivId::velocity(), true).execute( node );
 
         MechanicalEndIntegrationVisitor endVisitor(this->params, dt);
         node->execute(&endVisitor);
@@ -173,10 +142,4 @@ Visitor::Result PBDVisitor::processNodeTopDown(simulation::Node* node)
 
         return RESULT_PRUNE;
     }
-    {
-        // process InteractionForceFields
-        for_each(this, node, node->interactionForceField, &PBDVisitor::fwdInteractionForceField);
-        return RESULT_CONTINUE;
-    }
-
 }

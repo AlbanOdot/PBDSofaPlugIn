@@ -20,7 +20,7 @@ public:
     {
 
     }
-    virtual void solve( sofa::simulation::Node* node);
+    virtual bool solve( sofa::simulation::Node* node);
 
     virtual void draw(const sofa::core::visual::VisualParams* vparams) override;
 
@@ -48,7 +48,7 @@ public:
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
 
-    virtual void solve( sofa::simulation::Node* node);
+    virtual bool solve( sofa::simulation::Node* node);
 
     virtual void draw(const sofa::core::visual::VisualParams* vparams) override;
 

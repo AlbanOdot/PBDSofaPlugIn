@@ -18,7 +18,7 @@ public:
      *
      * Output : Solve the constraint adding in WriteCoord the computed displacement
      */
-    virtual void solve(sofa::simulation::Node * node) override;
+    virtual bool solve(sofa::simulation::Node * node) override;
 
     /*
      * Init function of sofa. It's called after the first init of the tree.
@@ -33,7 +33,7 @@ public:
      *
      * Output : Compute and apply the correction
      */
-    static inline void correction(sofa::defaulttype::RigidTypes::Coord& p0,sofa::defaulttype::RigidTypes::Coord& p1,
+    static inline bool correction(sofa::defaulttype::RigidTypes::Coord& p0,sofa::defaulttype::RigidTypes::Coord& p1,
                                   const SReal& l,
                                   const SReal w0,const SReal w1,
                                   Quaternionr& q0,Quaternionr& q1,
@@ -86,6 +86,7 @@ public:
                /*0.0*/ q1.y() - wq1 * ( omega.x()*q0.z() + omega.y()*q0.w() - omega.z()*q0.x()),//j
                /*0.0*/ q1.z() - wq1 * (-omega.x()*q0.y() + omega.y()*q0.x() + omega.z()*q0.w())};
         q1.normalize ();
+        return true;
     }
     /// Construction method called by ObjectFactory.
     template<class T>

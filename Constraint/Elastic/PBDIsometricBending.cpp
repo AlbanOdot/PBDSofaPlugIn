@@ -16,57 +16,32 @@ void PBDIsometricBending::bwdInit ()
     m_bending_topology.dampHighFrequencies (m_alpha_too.getValue ());
 }
 
-void PBDIsometricBending::solve(sofa::simulation::Node* node)
+bool PBDIsometricBending::solve(sofa::simulation::Node* node)
 {
     WriteCoord p = m_pbdObject->getFreePosition ();
     WriteDeriv v = m_pbdObject->getFreeVelocity ();
     uint pointCount = p.size();
+    bool modification = false;
 
-    if(m_indices.getValue().empty())
+    for( uint a = 0; a < pointCount; ++a)
     {
-        for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
+        //Get the edge of the corresponding neighbors
+        SReal w0 = m_mass.w(a);
+        for( const auto& voisin : m_stretch_topology.data ()[a])
         {
-
-            for( uint a = 0; a < pointCount; ++a)
-            {
-                //Get the edge of the corresponding neighbors
-                SReal w0 = m_mass.w(a);
-                for( const auto& voisin : m_stretch_topology.data ()[a])
-                {
-                    SReal w1 = m_mass.w(voisin.first);
-                    SReal wSum = w0 + w1;
-                    const sofa::defaulttype::Vec3& p_ij = p[a] - p[voisin.first];
-                    SReal l = p_ij.norm();
-                    const auto& displacement = ((l-voisin.second)/(l * wSum)) * p_ij;
-                    p[a]            -= w0 * displacement;
-                    p[voisin.first] += w1 * displacement;
-                    correction(a,voisin.first,p,v);
-                }
-            }
+            SReal w1 = m_mass.w(voisin.first);
+            SReal wSum = w0 + w1;
+            const sofa::defaulttype::Vec3& p_ij = p[a] - p[voisin.first];
+            SReal l = p_ij.norm();
+            const auto& displacement = ((l-voisin.second)/(l * wSum)) * p_ij;
+            p[a]            -= w0 * displacement;
+            p[voisin.first] += w1 * displacement;
+            modification &= correction(a,voisin.first,p,v);
         }
     }
-    else
-    {
-        const auto& idx = m_indices.getValue ();
-        for(uint iter = 0; iter < m_nbIter.getValue (); ++iter)
-        {
-            for( uint a : idx)
-            {
-                //Get the edge of the corresponding neighbors
-                for( const auto& voisin : m_stretch_topology.data ()[a])
-                {
-                    //Enforce the isometric property
-                    const sofa::defaulttype::Vec3& p_ij = p[a] - p[voisin.first];
-                    SReal l = p_ij.norm();
-                    const auto& dp = (0.5*(l-voisin.second)/l) * p_ij;
-                    p[a]            -= dp;
-                    p[voisin.first] += dp;
-                    correction (a,voisin.first,p,v);//PBDBending
-                }
-            }
-        }
-    }
+    return modification;
 }
+
 
 //We only take half of the diagonal for obvious reasons
 //E(bending) = 0.5 * x Q x^T

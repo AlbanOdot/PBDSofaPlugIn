@@ -24,10 +24,12 @@
 #include <sofa/simulation/IntegrateBeginEvent.h>
 #include <sofa/simulation/IntegrateEndEvent.h>
 #include <SofaConstraint/LCPConstraintSolver.h>
-#include "../Visitor/PBDVisitor.hpp"
+#include "../Visitor/PBDInitVisitor.hpp"
+#include "../Visitor/PBDEndVisitor.hpp"
+
 
 #include <omp.h>
-
+#include <fstream>
 
 
 
@@ -77,7 +79,12 @@ void PBDAnimationLoop::bwdInit ()
     //On récupère les topologies
     auto topologies = m_context->getObjects<sofa::core::topology::BaseMeshTopology>(BaseContext::SearchDown);
     m_solver.setupSolver(gnode,m_nbIter.getValue (),f_rayleighMass.getValue ());
+
+    myfile.open ("/home/alban/SOFA/sofa/PBD/ErrorMe/DistancePBD.py");
+    myfile <<"import matplotlib.pyplot as plt\n";
+    myfile << "import numpy as np\n";
     m_firststep = true;
+    e34.clear();e347.clear ();e629.clear ();
 
 }
 
@@ -88,15 +95,15 @@ void PBDAnimationLoop::setNode( sofa::simulation::Node* n )
 
 
 static inline void beginEventAndComputeSofaPhysics(const sofa::core::ExecParams* params,
-                                            sofa::simulation::Node* gnode,
-                                            const SReal dt)
+                                                   sofa::simulation::Node* gnode,
+                                                   const SReal dt)
 {
 
 }
 
 static inline void EndEventAndUpdateVisitors(const sofa::core::ExecParams* params,
-                                      sofa::simulation::Node* gnode,
-                                      const SReal dt){
+                                             sofa::simulation::Node* gnode,
+                                             const SReal dt){
 
     gnode->execute< UpdateSimulationContextVisitor >(params);
 
@@ -127,6 +134,7 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
         dt = gnode->getDt();
 
     double startTime = gnode->getTime();
+
     {
         AnimateBeginEvent ev ( dt );
         PropagateEventVisitor act ( params, &ev );
@@ -136,19 +144,35 @@ void PBDAnimationLoop::step(const sofa::core::ExecParams* params,
     BehaviorUpdatePositionVisitor beh(params , dt);
     gnode->execute(&beh);
 
+    /*
+     * Instead of AnimateVisitor
+     */
+
+    {
+        //Setup collision detectiona nd compute sofa physics witht he forcefields
+        PBDInitVisitor act(params, dt);
+        gnode->execute ( act );
+    }
     //update the orientations
     m_solver.setupOrientations (dt);
+    m_solver.updateFreePositionsAndVelocities ();
+
+
+    m_solver.generateCollisions ();
+
     //Solve each constraints one by one
     m_solver.solvePBDConstraints(params);
 
     //Integrate as said in the PBD method
     m_solver.integrate (dt);
 
-    AnimateVisitor act(params, dt);
-    gnode->execute ( act );
+    {
+        //Add the remainning sofa constraints if there is some
+        PBDEndVisitor act(params, dt);
+        gnode->execute ( act );
+    }
 
     gnode->setTime ( startTime + dt );
-
     gnode->execute< UpdateSimulationContextVisitor >(params);
 
     {
