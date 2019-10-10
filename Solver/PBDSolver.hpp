@@ -1,6 +1,6 @@
 #ifndef PBDSOLVER_H
 #define PBDSOLVER_H
-#include "config.h"
+
 #include "../Constraint/Other/PBDCollisionConstraint.hpp"
 #include "../Constraint/PBDBaseConstraint.hpp"
 
