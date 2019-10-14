@@ -1,4 +1,4 @@
-This SOFA plug-in implement the Position-ased Dynamic algorithm and 8 constraints for 1,2 and 3D meshes.
+This SOFA plug-in implement the Position-Based Dynamic algorithm and 8 constraints for 1,2 and 3D meshes.
 Each constraint contains in its header the article which it's coming from.
 
 Examples scenes:
