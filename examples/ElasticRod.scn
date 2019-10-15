@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<Node gravity="0 -9.81 0" dt="0.001">
+<PBDAnimationLoop iter="5" rayleighMass="3e-3"/>
+
+<VisualStyle displayFlags=" showForceFields" />
+    <CollisionPipeline depth="6" verbose="0" draw="0" />
+    <BruteForceDetection name="N2" />
+    <MinProximityIntersection name="Proximity" alarmDistance="0.03" contactDistance="0.02" />
+    <CollisionResponse name="Response" response="default" />
+    <EulerExplicit symplectic="true"/>
+    
+    <Node name="Beam" >
+        
+        <!-- MESH AND TOPOLOGY STUFFs -->
+        <MeshObjLoader name="meshLoader" filename="mesh/Beam100.obj" />
+        <EdgeSetTopologyContainer name="topo" src="@meshLoader" />
+        
+        <Transform3dToRigid name="transform"/>
+        <MechanicalObject template="Rigid3d" name="dofs" position="@transform.out_position"/>
+        <UniformMass  name="m" vertexMass="0.5" />
+        
+        <!-- PBD CONSTRAINTS -->
+        <PBDElasticRod attachedTo="@./dofs" topology="@./topo" radius="0.14" young="1e6" poisson="0.49" indices="0"/>
+        <PBDFixedRigidPoint attachedTo="@./dofs" topology="@./topo" indices="0"/>
+        
+        <!-- SOFA FORCEFIELDS -->
+        <!--<ConstantForceField indices="100" force="0 -100 0" />-->
+
+        <!-- COLLISION AND VISUALISATION MODEL -->
+        <!--<Node name="Collision">
+            <CubeTopology nx="8" ny="2" nz="2" min="-1 -0.1 -0.1" max="1 0.1 0.1" />
+            <MechanicalObject />
+            <BeamLinearMapping isMechanical="false" />
+            <Triangle /> 
+        </Node>-->
+    </Node>
+</Node>

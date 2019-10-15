@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<Node name="root" gravity="0 -9.81 0" dt="0.001">
+	<PBDAnimationLoop iter="2" rayleighMass="0.4"/>   
+    
+    <EulerImplicitSolver name="cg_odesolver"   rayleighStiffness="0.5" rayleighMass="0.5" />
+    <CGLinearSolver name="linear solver" iterations="1" tolerance="1e-09" threshold="1e-09" />
+	
+        <MeshGmshLoader name="meshLoader" filename="mesh/square3.msh" createSubelements="true"/>
+        <TriangleSetTopologyContainer name="topo" src="@meshLoader" />
+        <MechanicalObject name="dofs" src="@meshLoader"/>
+        <UniformMass totalMass="10" />
+        
+        <PBDBending attachedTo="@./dofs" topology="@./topo" resilience="1e-3" a1="1e-5" a2="0.1" />
+        <PBDStretch attachedTo="@./dofs" topology="@./topo" resilience="0.6" />
+        <PBDFixedPoint name="FixedConstraint" attachedTo="@./dofs" topology="@./topo" indices="0 1" />
+        
+        <Node name="Visu">
+            <OglModel name="Visual" color="red" />
+            <IdentityMapping input="@.." output="@Visual" />
+        </Node>
+        
+        <Node name="Surf">
+            <MechanicalObject src="@../meshLoader"/>
+            <IdentityMapping />
+        </Node>
+        
+    </Node>
+    
+</Node>

@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<Node name="root" gravity="0 -9.81 0" dt="0.001">
+	<PBDAnimationLoop iter="2" rayleighMass="0.4"/>   
+	<CollisionPipeline verbose="0" />
+    <BruteForceDetection name="N2" />
+    <CollisionResponse name="Response" />
+    <NewProximityIntersection alarmDistance="0.002" contactDistance="0.001" />
+   
+    <Node name="SquareCloth1">
+        <EulerImplicit name="cg_odesolver" printLog="false"  rayleighStiffness="0.1" rayleighMass="0.1" />
+        <CGLinearSolver iterations="1" name="linear solver" tolerance="1.0e-9" threshold="1.0e-9" />
+        <!--
+        <RegularGrid name ="grid" nx="20" ny="1" nz="20" xmin="12" xmax="-12" ymin="7" ymax="7" zmin="-12" zmax="12" />
+        <MeshObjLoader name="meshLoader" filename="mesh/sqrngB.obj"/>-->
+        <MeshGmshLoader name="meshLoader" filename="mesh/square3.msh" createSubelements="true"/>
+        <TriangleSetTopologyContainer name="topo" src="@meshLoader" />
+        <MechanicalObject name="dofs" src="@meshLoader"/>
+        <UniformMass vertexMass="0.1" />
+        
+        <PBDStrainTri attachedTo="@./dofs" topology="@./topo" stretch_and_shear="1 1 1" poisson="0.45" young="1e3" />
+        <PBDFixedPoint attachedTo="@./dofs" topology="@./topo" indices="0 1" />
+        
+        <Node name="Visu">
+            <OglModel name="Visual" color="red" />
+            <IdentityMapping input="@.." output="@Visual" />
+        </Node>
+        
+        <Node name="Surf">
+            <MechanicalObject src="@../meshLoader"/>
+            <IdentityMapping />
+        </Node>
+        
+    </Node>
+   
+</Node>

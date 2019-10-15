@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+
+
+<?xml version="1.0" ?>
+<Node name="root" gravity="0 -9.81 0" dt="0.02">
+	<PBDAnimationLoop iter="25"/>   
+	
+    <DefaultPipeline name="CollisionPipeline" verbose="0" />
+    <BruteForceDetection name="N2" />
+    <DefaultContactManager name="collision response" response="default" />
+    <DiscreteIntersection/>
+    
+    <Node name="liver" gravity="0 -9.81 0">
+        <EulerImplicitSolver name="cg_odesolver"   rayleighStiffness="0.1" rayleighMass="0.1" />
+        <CGLinearSolver name="linear solver" iterations="1" tolerance="1e-09" threshold="1e-09" />
+        <MeshGmshLoader name="meshLoader" filename="mesh/liver.msh" />
+        <TetrahedronSetTopologyContainer name="topo" src="@meshLoader" />
+        <MechanicalObject name="dofs" src="@meshLoader" />
+        <TetrahedronSetGeometryAlgorithms template="Vec3d" name="GeomAlgo" />
+        <DiagonalMass  name="computed using mass density" massDensity="1" />
+        
+        <PBDFixedPoint attachedTo="@./dofs" topology="@./topo" indices="3 39 64" />
+        <PBDStrainEnergy attachedTo="@./dofs" topology="@./topo" stretch="2 2 2" shear="0.1 0.1 0.1" poisson="0.3" young="3e3"/>
+
+	        
+        <Node name="Visu" tags="Visual" gravity="0 -9.81 0">
+            <OglModel  name="VisualModel" fileMesh="mesh/liver-smooth.obj" />
+            <BarycentricMapping name="visual mapping" input="@../dofs" output="@VisualModel" />
+        </Node>
+            
+        <Node name="Surf" gravity="0 -9.81 0">
+            <SphereLoader filename="mesh/liver.sph" />
+            <MechanicalObject name="spheres" position="@[-1].position" />
+            <TSphereModel name="CollisionModel" listRadius="@[-2].listRadius"/>
+            <BarycentricMapping name="sphere mapping" input="@../dofs" output="@spheres" />
+        </Node>
+    </Node>
+</Node>
