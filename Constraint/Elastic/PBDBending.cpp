@@ -1,6 +1,6 @@
 #include "PBDBending.hpp"
 #include <sofa/core/ObjectFactory.h>
-#include <Eigen/MatrixFunctions>
+#include <unsupported/Eigen/MatrixFunctions>
 
 int PBDBendingClass = sofa::core::RegisterObject("Constraint that correct the bending.")
                       .add< PBDBending >();

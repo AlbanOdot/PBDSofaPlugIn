@@ -1,5 +1,5 @@
 #include "FEMTetraData.hpp"
-#include <Eigen/MatrixFunctions>
+#include <unsupported/Eigen/MatrixFunctions>
 
 FEMTetraData::FEMTetraData(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
 {

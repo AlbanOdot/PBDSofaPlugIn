@@ -1,5 +1,5 @@
 #include "PBDTriDynamicBasis.hpp"
-#include <Eigen/MatrixFunctions>
+#include <unsupported/Eigen/MatrixFunctions>
 
 PBDTriDynamicBasis::PBDTriDynamicBasis(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
 {

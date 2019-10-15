@@ -1,5 +1,5 @@
 #include "StrainEnergyData.hpp"
-#include <Eigen/MatrixFunctions>
+#include <unsupported/Eigen/MatrixFunctions>
 
 StrainEnergyData::StrainEnergyData(Mech * m, Topo * t) : PBDBaseConstraintData (m,t)
 {

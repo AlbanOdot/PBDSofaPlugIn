@@ -1,7 +1,7 @@
 #include "PBDFEMTri.hpp"
 
 #include <sofa/core/ObjectFactory.h>
-#include <Eigen/MatrixFunctions>
+#include <unsupported/Eigen/MatrixFunctions>
 #include "../../Common/MathFunctions.hpp"
 #include <sofa/core/visual/VisualParams.h>
 #include <sofa/defaulttype/VecTypes.h>

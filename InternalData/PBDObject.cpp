@@ -1,5 +1,5 @@
 #include "PBDObject.hpp"
-#include <Eigen/MatrixFunctions>
+#include <unsupported/Eigen/MatrixFunctions>
 #include <sofa/core/objectmodel/BaseContext.h>
 #include <SofaBaseMechanics/UniformMass.h>
 #include <sofa/core/ObjectFactory.h>

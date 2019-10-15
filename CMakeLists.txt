@@ -12,9 +12,14 @@ endif()
 find_package(SofaMisc REQUIRED)
 find_package(SofaOpenglVisual REQUIRED)
 
-FILE(GLOB_RECURSE SOURCES_FILES ${CMAKE_SOURCE_DIR}/*.cpp)
-FILE(GLOB_RECURSE HEADER_FILES ${CMAKE_SOURCE_DIR}/*.hpp)
-FILE(GLOB_RECURSE INLINE_FILES ${CMAKE_SOURCE_DIR}/*.inl)
+FILE(GLOB_RECURSE SOURCES_FILES ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
+FILE(GLOB_RECURSE HEADER_FILES ${CMAKE_CURRENT_LIST_DIR}/*.hpp)
+FILE(GLOB_RECURSE INLINE_FILES ${CMAKE_CURRENT_LIST_DIR}/*.inl)
+
+find_package(EIGEN3)
+if(EIGEN3_FOUND)
+    target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIR}>")
+endif()
 
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${INLINE_FILES} ${SOURCES_FILES})
 target_link_libraries(${PROJECT_NAME} SofaCore SofaSimulationCore SofaSimulationCommon SofaBaseMechanics SofaTopologyMapping SofaRigid SofaOpenglVisual)
